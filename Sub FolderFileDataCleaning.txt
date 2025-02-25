@@ -14,10 +14,27 @@ Sub AppendFiles()
     Dim SourceFileName As String
     Dim DestFileName As String
     Dim RowCount As Long
+    Dim FolderPicker As FileDialog
 
-    ' Set Source and Destination Folder paths
-    SourceFolder = "C:\Your\Source\Folder\Path\" ' Change this to your source folder path
-    DestinationFolder = "C:\Your\Destination\Folder\Path\" ' Change this to your destination folder path
+    ' Open Folder Picker for Source Folder
+    Set FolderPicker = Application.FileDialog(msoFileDialogFolderPicker)
+    FolderPicker.Title = "Select Source Folder"
+    If FolderPicker.Show = -1 Then
+        SourceFolder = FolderPicker.SelectedItems(1) & "\"
+    Else
+        MsgBox "No Source Folder selected. Exiting..."
+        Exit Sub
+    End If
+
+    ' Open Folder Picker for Destination Folder
+    Set FolderPicker = Application.FileDialog(msoFileDialogFolderPicker)
+    FolderPicker.Title = "Select Destination Folder"
+    If FolderPicker.Show = -1 Then
+        DestinationFolder = FolderPicker.SelectedItems(1) & "\"
+    Else
+        MsgBox "No Destination Folder selected. Exiting..."
+        Exit Sub
+    End If
 
     ' Loop through all files in the Source Folder
     SourceFile = Dir(SourceFolder & "*.xls*")
