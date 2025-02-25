@@ -43,6 +43,9 @@ Sub AppendDataToFiles()
         Set wbSource = Workbooks.Open(SourceFolder & SourceFile)
         Set wsSource = wbSource.Sheets(1) ' Assuming data is in the first sheet
         
+        ' Remove header row from source data
+        wsSource.Rows(1).Delete Shift:=xlUp
+        
         ' Open or create the destination workbook
         If Dir(DestinationFile) <> "" Then
             Set wbDestination = Workbooks.Open(DestinationFile)
