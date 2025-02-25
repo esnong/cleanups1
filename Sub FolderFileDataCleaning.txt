@@ -33,6 +33,7 @@ Sub AppendDataToFiles()
         If UBound(FileParts) >= 1 Then
             Identifier = FileParts(1) ' Extract the xxxxxx part
         Else
+            SourceFile = Dir
             GoTo NextFile
         End If
         
@@ -51,16 +52,19 @@ Sub AppendDataToFiles()
             Set wbDestination = Workbooks.Open(DestinationFile)
         Else
             Set wbDestination = Workbooks.Add
+            wbDestination.Sheets(1).Name = "Sheet1"
             wbDestination.SaveAs DestinationFile
         End If
         Set wsDestination = wbDestination.Sheets(1)
         
-        ' Find the last row in both workbooks
+        ' Find the last row in source and destination sheets
         LastRow = wsSource.Cells(wsSource.Rows.Count, 1).End(xlUp).Row
         AppendRow = wsDestination.Cells(wsDestination.Rows.Count, 1).End(xlUp).Row + 1
         
         ' Copy data from source and append to destination
-        wsSource.Range("A1:Z" & LastRow).Copy wsDestination.Cells(AppendRow, 1)
+        If LastRow >= 1 Then
+            wsSource.Range("A1:Z" & LastRow).Copy wsDestination.Cells(AppendRow, 1)
+        End If
         
         ' Save and close workbooks
         wbDestination.Save
@@ -72,5 +76,5 @@ NextFile:
         SourceFile = Dir
     Loop
     
-    MsgBox "Files have been successfully appended!", vbInformation
+    MsgBox "All files have been successfully appended!", vbInformation
 End Sub
