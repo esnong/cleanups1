@@ -63,7 +63,9 @@ Sub AppendDataToFiles()
         
         ' Copy data from source and append to destination
         If LastRow >= 1 Then
-            wsSource.Range("A1:Z" & LastRow).Copy wsDestination.Cells(AppendRow, 1)
+            wsSource.Range("A1:Z" & LastRow).Copy
+            wsDestination.Cells(AppendRow, 1).PasteSpecial Paste:=xlPasteValues
+            Application.CutCopyMode = False
         End If
         
         ' Save and close workbooks
@@ -71,7 +73,6 @@ Sub AppendDataToFiles()
         wbDestination.Close False
         wbSource.Close False
         
-NextFile:
         ' Get next file
         SourceFile = Dir
     Loop
