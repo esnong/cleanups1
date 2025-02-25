@@ -34,7 +34,7 @@ Sub AppendDataToFiles()
             Identifier = FileParts(1) ' Extract the xxxxxx part
         Else
             SourceFile = Dir
-            GoTo NextFile
+            Continue Do ' Skip to next file
         End If
         
         ' Define the corresponding destination file path
