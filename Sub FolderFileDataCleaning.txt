@@ -26,15 +26,18 @@ Sub AppendDataToFiles()
     End With
     
     ' Process each Excel file in the source folder
-    SourceFile = Dir(SourceFolder & "*.xlsx")
-    Do While SourceFile <> ""
+    SourceFile = Dir(SourceFolder & "*.xlsx") ' Get first Excel file
+    Do While SourceFile <> "" ' Continue until all files are processed
         ' Extract identifier from filename (format: mmm_xxxxxx_yyyy)
         FileParts = Split(SourceFile, "_")
+        
+        ' If the filename format is correct, extract the identifier
         If UBound(FileParts) >= 1 Then
             Identifier = FileParts(1) ' Extract the xxxxxx part
         Else
-            ' Skip this file and go to the next one
-            GoTo NextFile
+            ' If the file doesn't match the format, skip it
+            SourceFile = Dir
+            Continue Do
         End If
         
         ' Define the corresponding destination file path
@@ -51,6 +54,7 @@ Sub AppendDataToFiles()
         If Dir(DestinationFile) <> "" Then
             Set wbDestination = Workbooks.Open(DestinationFile)
         Else
+            ' If the destination file doesn't exist, create it
             Set wbDestination = Workbooks.Add
             wbDestination.Sheets(1).Name = "Sheet1"
             wbDestination.SaveAs DestinationFile
@@ -73,8 +77,7 @@ Sub AppendDataToFiles()
         wbDestination.Close False
         wbSource.Close False
         
-NextFile:
-        ' Get next file
+        ' Get the next file
         SourceFile = Dir
     Loop
     
