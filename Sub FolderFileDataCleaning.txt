@@ -11,8 +11,6 @@ Sub AppendFiles()
     Dim LastRowSource As Long
     Dim LastRowDestination As Long
     Dim CostCentre As String
-    Dim SourceFileName As String
-    Dim DestFileName As String
     Dim RowCount As Long
     Dim FolderPicker As FileDialog
 
@@ -37,7 +35,7 @@ Sub AppendFiles()
     End If
 
     ' Loop through all files in the Source Folder
-    SourceFile = Dir(SourceFolder & "*.xls*")
+    SourceFile = Dir(SourceFolder & "*.xls*") ' Get the first Excel file
     
     ' Loop through all Source files
     Do While SourceFile <> ""
@@ -45,7 +43,7 @@ Sub AppendFiles()
         CostCentre = Split(Split(SourceFile, "_")(1), ".")(0)
 
         ' Loop through all Destination files (matching cost centre)
-        DestinationFile = Dir(DestinationFolder & CostCentre & "*.xls*")
+        DestinationFile = Dir(DestinationFolder & CostCentre & "*.xls*") ' Find matching Destination file
         
         Do While DestinationFile <> ""
             ' Open the Source and Destination Workbooks
@@ -72,7 +70,7 @@ Sub AppendFiles()
             DestinationWB.Close
             SourceWB.Close False
 
-            ' Get the next Destination file
+            ' Get the next Destination file (matching cost centre)
             DestinationFile = Dir
 
         Loop
