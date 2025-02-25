@@ -1,86 +1,66 @@
-Sub AppendDataToFiles()
-    Dim SourceFolder As String, DestinationFolder As String
-    Dim SourceFile As String, DestinationFile As String
-    Dim wbSource As Workbook, wbDestination As Workbook
-    Dim wsSource As Worksheet, wsDestination As Worksheet
-    Dim LastRow As Long, AppendRow As Long
-    Dim FileParts() As String, Identifier As String
-    Dim FolderPicker As FileDialog
+Sub AppendFiles()
+
+    Dim SourceFolder As String
+    Dim DestinationFolder As String
+    Dim SourceFile As String
+    Dim DestinationFile As String
+    Dim SourceWB As Workbook
+    Dim DestinationWB As Workbook
+    Dim SourceWS As Worksheet
+    Dim DestinationWS As Worksheet
+    Dim LastRowSource As Long
+    Dim LastRowDestination As Long
+    Dim CostCentre As String
+    Dim SourceFileName As String
+    Dim DestFileName As String
+    Dim RowCount As Long
+
+    ' Set Source and Destination Folder paths
+    SourceFolder = "C:\Your\Source\Folder\Path\" ' Change this to your source folder path
+    DestinationFolder = "C:\Your\Destination\Folder\Path\" ' Change this to your destination folder path
+
+    ' Loop through all files in the Source Folder
+    SourceFile = Dir(SourceFolder & "*.xls*")
     
-    ' Ask user to select source folder
-    Set FolderPicker = Application.FileDialog(msoFileDialogFolderPicker)
-    With FolderPicker
-        .Title = "Select Source Folder Containing Excel Files"
-        .AllowMultiSelect = False
-        If .Show <> -1 Then Exit Sub
-        SourceFolder = .SelectedItems(1) & "\"
-    End With
-    
-    ' Ask user to select destination folder
-    Set FolderPicker = Application.FileDialog(msoFileDialogFolderPicker)
-    With FolderPicker
-        .Title = "Select Destination Folder for Consolidation"
-        .AllowMultiSelect = False
-        If .Show <> -1 Then Exit Sub
-        DestinationFolder = .SelectedItems(1) & "\"
-    End With
-    
-    ' Process each Excel file in the source folder
-    SourceFile = Dir(SourceFolder & "*.xlsx") ' Get first Excel file
-    Do While SourceFile <> "" ' Continue until all files are processed
-        ' Extract identifier from filename (format: mmm_xxxxxx_yyyy)
-        FileParts = Split(SourceFile, "_")
+    Do While SourceFile <> ""
+
+        ' Extract the cost center value from the source file name (e.g. "jun_524000_2025")
+        CostCentre = Split(Split(SourceFile, "_")(1), ".")(0)
+
+        ' Find the corresponding Destination file
+        DestinationFile = Dir(DestinationFolder & CostCentre & "*.xls*")
         
-        ' If the filename format is correct, extract the identifier
-        If UBound(FileParts) >= 1 Then
-            Identifier = FileParts(1) ' Extract the xxxxxx part
-        Else
-            ' If the file doesn't match the format, skip it by going to the next file
-            SourceFile = Dir
-            GoTo NextFile
+        If DestinationFile <> "" Then
+            ' Open the Source and Destination Workbooks
+            Set SourceWB = Workbooks.Open(SourceFolder & SourceFile)
+            Set DestinationWB = Workbooks.Open(DestinationFolder & DestinationFile)
+            
+            ' Assuming the first sheet in both source and destination workbooks
+            Set SourceWS = SourceWB.Sheets(1)
+            Set DestinationWS = DestinationWB.Sheets(1)
+
+            ' Find the last row of data in the Source and Destination sheets
+            LastRowSource = SourceWS.Cells(SourceWS.Rows.Count, 1).End(xlUp).Row
+            LastRowDestination = DestinationWS.Cells(DestinationWS.Rows.Count, 1).End(xlUp).Row
+            
+            ' Loop through each row in the Source sheet, starting from row 2 to skip the header
+            For RowCount = 2 To LastRowSource
+                ' Append the row of data from the Source to the Destination sheet
+                DestinationWS.Rows(LastRowDestination + 1).Value = SourceWS.Rows(RowCount).Value
+                LastRowDestination = LastRowDestination + 1
+            Next RowCount
+
+            ' Save and close both workbooks
+            DestinationWB.Save
+            DestinationWB.Close
+            SourceWB.Close False
         End If
-        
-        ' Define the corresponding destination file path
-        DestinationFile = DestinationFolder & Identifier & ".xlsx"
-        
-        ' Open the source workbook
-        Set wbSource = Workbooks.Open(SourceFolder & SourceFile)
-        Set wsSource = wbSource.Sheets(1) ' Assuming data is in the first sheet
-        
-        ' Remove header row from source data
-        wsSource.Rows(1).Delete Shift:=xlUp
-        
-        ' Open or create the destination workbook
-        If Dir(DestinationFile) <> "" Then
-            Set wbDestination = Workbooks.Open(DestinationFile)
-        Else
-            ' If the destination file doesn't exist, create it
-            Set wbDestination = Workbooks.Add
-            wbDestination.Sheets(1).Name = "Sheet1"
-            wbDestination.SaveAs DestinationFile
-        End If
-        Set wsDestination = wbDestination.Sheets(1)
-        
-        ' Find the last row in source and destination sheets
-        LastRow = wsSource.Cells(wsSource.Rows.Count, 1).End(xlUp).Row
-        AppendRow = wsDestination.Cells(wsDestination.Rows.Count, 1).End(xlUp).Row + 1
-        
-        ' Copy data from source and append to destination
-        If LastRow >= 1 Then
-            wsSource.Range("A1:Z" & LastRow).Copy
-            wsDestination.Cells(AppendRow, 1).PasteSpecial Paste:=xlPasteValues
-            Application.CutCopyMode = False
-        End If
-        
-        ' Save and close workbooks
-        wbDestination.Save
-        wbDestination.Close False
-        wbSource.Close False
-        
-NextFile:
-        ' Get the next file
+
+        ' Get the next Source file
         SourceFile = Dir
+
     Loop
     
-    MsgBox "All files have been successfully appended!", vbInformation
+    MsgBox "Appending completed successfully!"
+
 End Sub
