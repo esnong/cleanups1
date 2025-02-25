@@ -39,15 +39,15 @@ Sub AppendFiles()
     ' Loop through all files in the Source Folder
     SourceFile = Dir(SourceFolder & "*.xls*")
     
+    ' Loop through all Source files
     Do While SourceFile <> ""
-
         ' Extract the cost center value from the source file name (e.g. "jun_524000_2025")
         CostCentre = Split(Split(SourceFile, "_")(1), ".")(0)
 
-        ' Find the corresponding Destination file
+        ' Loop through all Destination files (matching cost centre)
         DestinationFile = Dir(DestinationFolder & CostCentre & "*.xls*")
         
-        If DestinationFile <> "" Then
+        Do While DestinationFile <> ""
             ' Open the Source and Destination Workbooks
             Set SourceWB = Workbooks.Open(SourceFolder & SourceFile)
             Set DestinationWB = Workbooks.Open(DestinationFolder & DestinationFile)
@@ -71,7 +71,11 @@ Sub AppendFiles()
             DestinationWB.Save
             DestinationWB.Close
             SourceWB.Close False
-        End If
+
+            ' Get the next Destination file
+            DestinationFile = Dir
+
+        Loop
 
         ' Get the next Source file
         SourceFile = Dir
