@@ -35,9 +35,9 @@ Sub AppendDataToFiles()
         If UBound(FileParts) >= 1 Then
             Identifier = FileParts(1) ' Extract the xxxxxx part
         Else
-            ' If the file doesn't match the format, skip it
+            ' If the file doesn't match the format, skip it by going to the next file
             SourceFile = Dir
-            Continue Do
+            GoTo NextFile
         End If
         
         ' Define the corresponding destination file path
@@ -77,6 +77,7 @@ Sub AppendDataToFiles()
         wbDestination.Close False
         wbSource.Close False
         
+NextFile:
         ' Get the next file
         SourceFile = Dir
     Loop
