@@ -1,60 +1,47 @@
-Sub AddMonthColumn()
+Sub CreateColumnWithFormula()
+    Dim monthYear As String
     Dim ws As Worksheet
-    Dim lastColumn As Long
-    Dim userInput As String
-    Dim headerName As String
-    Dim rowNum As Long
-    Dim formulaColumn As Long
-    Dim cell As Range
-    Dim sheetExists As Boolean
+    Dim lastCol As Long
+    Dim newCol As Long
+    Dim formula As String
+    Dim thirdLastCol As Long
     
-    ' Check if the "Table" sheet exists
-    sheetExists = False
-    On Error Resume Next
+    ' Ask for the month-year input
+    monthYear = InputBox("Enter the month and year in MMM-YY format (e.g., Jan-25):", "Enter Month-Year")
+    
+    ' Exit if input is empty or invalid
+    If monthYear = "" Then Exit Sub
+    If Not IsDate("01-" & monthYear) Then
+        MsgBox "Invalid format. Please enter the month and year in MMM-YY format.", vbCritical
+        Exit Sub
+    End If
+    
+    ' Set the worksheet
     Set ws = ThisWorkbook.Sheets("Table")
-    On Error GoTo 0
     
-    ' If the sheet doesn't exist, show an error and exit
-    If ws Is Nothing Then
-        MsgBox "The sheet 'Table' does not exist in this workbook.", vbCritical
-        Exit Sub
+    ' Find the last column with data
+    lastCol = ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column
+    
+    ' New column will be second last column
+    newCol = lastCol - 1
+    
+    ' Set the header of the new column as the month-year entered
+    ws.Cells(1, newCol).Value = monthYear
+    
+    ' Set the formula for the new column based on the month
+    If Left(monthYear, 3) = "Jan" Then
+        formula = "=IFERROR(IF($A2<400000,VLOOKUP($A2, 'SG05'!$E:$O,7,0),VLOOKUP($A2, 'SG05'!$E:$O,7,0)),0)"
+    Else
+        formula = "=IFERROR(IF($A2<400000,VLOOKUP($A2, 'SG05'!$E:$O,7,0),VLOOKUP($A2, 'SG05'!$E:$O,11,0)),0)"
     End If
     
-    ' Ask for user input (MMM-YY format)
-    userInput = InputBox("Please enter the month and year (e.g., Jan-25):")
+    ' Apply the formula from row 2 down the new column
+    ws.Range(ws.Cells(2, newCol), ws.Cells(ws.Rows.Count, newCol)).Formula = formula
     
-    ' If no input is provided, exit the sub
-    If userInput = "" Then
-        MsgBox "No input provided. Macro will exit."
-        Exit Sub
-    End If
+    ' Convert the third last column to values (numbers)
+    thirdLastCol = lastCol - 2
+    ws.Range(ws.Cells(2, thirdLastCol), ws.Cells(ws.Rows.Count, thirdLastCol)).Value = _
+        ws.Range(ws.Cells(2, thirdLastCol), ws.Cells(ws.Rows.Count, thirdLastCol)).Value
     
-    ' Get the last column in the Table sheet
-    lastColumn = ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column
-    
-    ' Determine the second last column (where the new column will go)
-    formulaColumn = lastColumn - 1
-    
-    ' Insert a new column as the second last column
-    ws.Columns(formulaColumn).Insert Shift:=xlToRight
-    
-    ' Set the header of the new column to the user input
-    ws.Cells(1, formulaColumn).Value = userInput
-    
-    ' Copy the formula from the third last column (column before last) to the new column
-    ws.Range(ws.Cells(2, formulaColumn + 1), ws.Cells(ws.Rows.Count, formulaColumn + 1).End(xlUp)).Copy
-    ws.Cells(2, formulaColumn).PasteSpecial Paste:=xlPasteFormulas
-    
-    ' Convert the third last column formulas to values
-    For Each cell In ws.Range(ws.Cells(2, formulaColumn + 1), ws.Cells(ws.Rows.Count, formulaColumn + 1).End(xlUp))
-        If cell.HasFormula Then
-            cell.Value = cell.Value
-        End If
-    Next cell
-
-    ' Optional: Clean up any selection or clipboard activity
-    Application.CutCopyMode = False
-
-    ' Notify the user that the task is completed
-    MsgBox "The new column has been added and the formulas have been converted."
+    MsgBox "Macro completed successfully!"
 End Sub
