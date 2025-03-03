@@ -1,87 +1,50 @@
-Sub AppendFiles()
+Sub AddMonthColumn()
+    Dim ws As Worksheet
+    Dim lastColumn As Long
+    Dim userInput As String
+    Dim headerName As String
+    Dim rowNum As Long
+    Dim formulaColumn As Long
+    Dim cell As Range
 
-    Dim SourceFolder As String
-    Dim DestinationFolder As String
-    Dim SourceFile As String
-    Dim DestinationFile As String
-    Dim SourceWB As Workbook
-    Dim DestinationWB As Workbook
-    Dim SourceWS As Worksheet
-    Dim DestinationWS As Worksheet
-    Dim LastRowSource As Long
-    Dim LastRowDestination As Long
-    Dim CostCentre As String
-    Dim RowCount As Long
-    Dim fso As Object
-    Dim sourceFolderObject As Object
-    Dim destinationFolderObject As Object
-    Dim sourceFileObject As Object
-    Dim destinationFileObject As Object
-    Dim FolderPicker As FileDialog
-
-    ' Open Folder Picker for Source Folder
-    Set FolderPicker = Application.FileDialog(msoFileDialogFolderPicker)
-    FolderPicker.Title = "Select Source Folder"
-    If FolderPicker.Show = -1 Then
-        SourceFolder = FolderPicker.SelectedItems(1) & "\"
-    Else
-        MsgBox "No Source Folder selected. Exiting..."
+    ' Set the worksheet reference
+    Set ws = ThisWorkbook.Sheets("Table")
+    
+    ' Ask for user input (MMM-YY format)
+    userInput = InputBox("Please enter the month and year (e.g., Jan-25):")
+    
+    ' If no input is provided, exit the sub
+    If userInput = "" Then
+        MsgBox "No input provided. Macro will exit."
         Exit Sub
     End If
+    
+    ' Get the last column in the Table sheet
+    lastColumn = ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column
+    
+    ' Determine the second last column (where the new column will go)
+    formulaColumn = lastColumn - 1
+    
+    ' Insert a new column as the second last column
+    ws.Columns(formulaColumn).Insert Shift:=xlToRight
+    
+    ' Set the header of the new column to the user input
+    ws.Cells(1, formulaColumn).Value = userInput
+    
+    ' Copy the formula from the third last column (column before last) to the new column
+    ws.Range(ws.Cells(2, formulaColumn + 1), ws.Cells(ws.Rows.Count, formulaColumn + 1).End(xlUp)).Copy
+    ws.Cells(2, formulaColumn).PasteSpecial Paste:=xlPasteFormulas
+    
+    ' Convert the third last column formulas to values
+    For Each cell In ws.Range(ws.Cells(2, formulaColumn + 1), ws.Cells(ws.Rows.Count, formulaColumn + 1).End(xlUp))
+        If cell.HasFormula Then
+            cell.Value = cell.Value
+        End If
+    Next cell
 
-    ' Open Folder Picker for Destination Folder
-    Set FolderPicker = Application.FileDialog(msoFileDialogFolderPicker)
-    FolderPicker.Title = "Select Destination Folder"
-    If FolderPicker.Show = -1 Then
-        DestinationFolder = FolderPicker.SelectedItems(1) & "\"
-    Else
-        MsgBox "No Destination Folder selected. Exiting..."
-        Exit Sub
-    End If
+    ' Optional: Clean up any selection or clipboard activity
+    Application.CutCopyMode = False
 
-    ' Create FileSystemObject
-    Set fso = CreateObject("Scripting.FileSystemObject")
-
-    ' Get the source and destination folder objects
-    Set sourceFolderObject = fso.GetFolder(SourceFolder)
-    Set destinationFolderObject = fso.GetFolder(DestinationFolder)
-
-    ' Loop through all files in the Source Folder
-    For Each sourceFileObject In sourceFolderObject.Files
-        ' Extract the cost center value from the source file name (e.g. "jun_524000_2025")
-        CostCentre = Split(Split(sourceFileObject.Name, "_")(1), ".")(0)
-
-        ' Loop through all files in the Destination Folder
-        For Each destinationFileObject In destinationFolderObject.Files
-            ' Check if the destination file matches the cost center (e.g., "524000.xls")
-            If InStr(destinationFileObject.Name, CostCentre) > 0 Then
-                ' Open the Source and Destination Workbooks
-                Set SourceWB = Workbooks.Open(sourceFileObject.Path)
-                Set DestinationWB = Workbooks.Open(destinationFileObject.Path)
-                
-                ' Assuming the first sheet in both source and destination workbooks
-                Set SourceWS = SourceWB.Sheets(1)
-                Set DestinationWS = DestinationWB.Sheets(1)
-
-                ' Find the last row of data in the Source and Destination sheets
-                LastRowSource = SourceWS.Cells(SourceWS.Rows.Count, 1).End(xlUp).Row
-                LastRowDestination = DestinationWS.Cells(DestinationWS.Rows.Count, 1).End(xlUp).Row
-                
-                ' Loop through each row in the Source sheet, starting from row 2 to skip the header
-                For RowCount = 2 To LastRowSource
-                    ' Append the row of data from the Source to the Destination sheet
-                    DestinationWS.Rows(LastRowDestination + 1).Value = SourceWS.Rows(RowCount).Value
-                    LastRowDestination = LastRowDestination + 1
-                Next RowCount
-
-                ' Save and close both workbooks
-                DestinationWB.Save
-                DestinationWB.Close
-                SourceWB.Close False
-            End If
-        Next destinationFileObject
-    Next sourceFileObject
-
-    MsgBox "Appending completed successfully!"
-
+    ' Notify the user that the task is completed
+    MsgBox "The new column has been added and the formulas have been converted."
 End Sub
