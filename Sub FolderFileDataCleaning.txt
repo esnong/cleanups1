@@ -6,9 +6,19 @@ Sub AddMonthColumn()
     Dim rowNum As Long
     Dim formulaColumn As Long
     Dim cell As Range
-
-    ' Set the worksheet reference
+    Dim sheetExists As Boolean
+    
+    ' Check if the "Table" sheet exists
+    sheetExists = False
+    On Error Resume Next
     Set ws = ThisWorkbook.Sheets("Table")
+    On Error GoTo 0
+    
+    ' If the sheet doesn't exist, show an error and exit
+    If ws Is Nothing Then
+        MsgBox "The sheet 'Table' does not exist in this workbook.", vbCritical
+        Exit Sub
+    End If
     
     ' Ask for user input (MMM-YY format)
     userInput = InputBox("Please enter the month and year (e.g., Jan-25):")
