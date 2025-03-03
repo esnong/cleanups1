@@ -22,8 +22,8 @@ Sub CreateColumnWithFormula()
     ' Find the last column with data
     lastCol = ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column
     
-    ' New column will be second last column
-    newCol = lastCol - 1
+    ' New column will be added at the end of the last column
+    newCol = lastCol + 1
     
     ' Set the header of the new column as the month-year entered
     ws.Cells(1, newCol).Value = monthYear
