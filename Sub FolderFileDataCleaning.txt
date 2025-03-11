@@ -1,47 +1,30 @@
-Sub CreateColumnWithFormula()
-    Dim monthYear As String
-    Dim ws As Worksheet
-    Dim lastCol As Long
-    Dim newCol As Long
-    Dim formula As String
-    Dim thirdLastCol As Long
-    
-    ' Ask for the month-year input
-    monthYear = InputBox("Enter the month and year in MMM-YY format (e.g., Jan-25):", "Enter Month-Year")
-    
-    ' Exit if input is empty or invalid
-    If monthYear = "" Then Exit Sub
-    If Not IsDate("01-" & monthYear) Then
-        MsgBox "Invalid format. Please enter the month and year in MMM-YY format.", vbCritical
-        Exit Sub
-    End If
-    
-    ' Set the worksheet
-    Set ws = ThisWorkbook.Sheets("Table")
-    
-    ' Find the last column with data
-    lastCol = ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column
-    
-    ' New column will be added at the end of the last column
-    newCol = lastCol + 1
-    
-    ' Set the header of the new column as the month-year entered
-    ws.Cells(1, newCol).Value = monthYear
-    
-    ' Set the formula for the new column based on the month
-    If Left(monthYear, 3) = "Jan" Then
-        formula = "=IFERROR(IF($A2<400000,VLOOKUP($A2, 'SG05'!$E:$O,7,0),VLOOKUP($A2, 'SG05'!$E:$O,7,0)),0)"
-    Else
-        formula = "=IFERROR(IF($A2<400000,VLOOKUP($A2, 'SG05'!$E:$O,7,0),VLOOKUP($A2, 'SG05'!$E:$O,11,0)),0)"
-    End If
-    
-    ' Apply the formula from row 2 down the new column
-    ws.Range(ws.Cells(2, newCol), ws.Cells(ws.Rows.Count, newCol)).Formula = formula
-    
-    ' Convert the third last column to values (numbers)
-    thirdLastCol = lastCol - 2
-    ws.Range(ws.Cells(2, thirdLastCol), ws.Cells(ws.Rows.Count, thirdLastCol)).Value = _
-        ws.Range(ws.Cells(2, thirdLastCol), ws.Cells(ws.Rows.Count, thirdLastCol)).Value
-    
-    MsgBox "Macro completed successfully!"
-End Sub
+Function GetMonthAbbreviation(monthNumber As String) As String
+    Select Case monthNumber
+        Case "01"
+            GetMonthAbbreviation = "Jan"
+        Case "02"
+            GetMonthAbbreviation = "Feb"
+        Case "03"
+            GetMonthAbbreviation = "Mar"
+        Case "04"
+            GetMonthAbbreviation = "Apr"
+        Case "05"
+            GetMonthAbbreviation = "May"
+        Case "06"
+            GetMonthAbbreviation = "Jun"
+        Case "07"
+            GetMonthAbbreviation = "Jul"
+        Case "08"
+            GetMonthAbbreviation = "Aug"
+        Case "09"
+            GetMonthAbbreviation = "Sep"
+        Case "10"
+            GetMonthAbbreviation = "Oct"
+        Case "11"
+            GetMonthAbbreviation = "Nov"
+        Case "12"
+            GetMonthAbbreviation = "Dec"
+        Case Else
+            GetMonthAbbreviation = "Invalid"
+    End Select
+End Function
