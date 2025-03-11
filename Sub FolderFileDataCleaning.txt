@@ -18,12 +18,22 @@ Dim selectedPeriodFrom As String
 Dim selectedPeriodTo As String
 Dim selectedControllingArea As String
 Dim selectedCostCentre As String
+Dim monthFrom As String
+Dim monthTo As String
 
 selectedFiscalYear = ActiveWorkbook.ActiveSheet.Range("B3").Value
 selectedPeriodFrom = ActiveWorkbook.ActiveSheet.Range("B4").Value
 selectedPeriodTo = ActiveWorkbook.ActiveSheet.Range("B5").Value
 selectedControllingArea = ActiveWorkbook.ActiveSheet.Range("E8").Value
 selectedCostCentre = ActiveWorkbook.ActiveSheet.Range("E9").Value
+
+' Convert period (month) numbers to month abbreviations
+monthFrom = GetMonthAbbreviation(Left(selectedPeriodFrom, 2))
+monthTo = GetMonthAbbreviation(Left(selectedPeriodTo, 2))
+
+' Build filename in the format "jan_to_mar_524003_2025"
+Dim fileName As String
+fileName = monthFrom & "_to_" & monthTo & "_" & selectedCostCentre & "_" & selectedFiscalYear
 
 session.FindById("wnd[0]").Maximize
 session.FindById("wnd[0]/tbar[0]/okcd").Text = "S_ALR_87013611"
@@ -41,8 +51,8 @@ session.FindById("wnd[1]/usr/subSUBSCREEN_STEPLOOP:SAPLSPO5:0150/sub:SAPLSPO5:01
 session.FindById("wnd[1]/usr/subSUBSCREEN_STEPLOOP:SAPLSPO5:0150/sub:SAPLSPO5:0150/radSPOPLI-SELFLAG[1,0]").SetFocus
 session.FindById("wnd[1]/tbar[0]/btn[0]").Press
 session.FindById("wnd[1]/usr/ctxtDY_PATH").Text = "\\psgsgf06\SCR\Finance\Restricted\==PWS\Automation\3. SAP Scripting\Monthly Documents"
-session.FindById("wnd[1]/usr/ctxtDY_FILENAME").Text = selectedCostCentre & "_" & selectedFiscalYear & "_" & selectedPeriodFrom & "_" & "to" & "_" & selectedPeriodTo & ".xls"
-session.FindById("wnd[1]/usr/ctxtDY_FILENAME").CaretPosition = 27
+session.FindById("wnd[1]/usr/ctxtDY_FILENAME").Text = fileName & ".xls"
+session.FindById("wnd[1]/usr/ctxtDY_FILENAME").CaretPosition = Len(fileName) + 5
 session.FindById("wnd[1]/tbar[0]/btn[0]").Press
 session.FindById("wnd[0]/tbar[0]/btn[3]").Press
 session.FindById("wnd[1]/usr/btnBUTTON_YES").Press
@@ -51,6 +61,34 @@ MsgBox "Script Completed."
 
 End Sub
 
-
-
-
+' Function to convert month number (01, 02, ...) to month abbreviation (Jan, Feb, ...)
+Function GetMonthAbbreviation(monthNumber As String) As String
+    Select Case monthNumber
+        Case "01"
+            GetMonthAbbreviation = "Jan"
+        Case "02"
+            GetMonthAbbreviation = "Feb"
+        Case "03"
+            GetMonthAbbreviation = "Mar"
+        Case "04"
+            GetMonthAbbreviation = "Apr"
+        Case "05"
+            GetMonthAbbreviation = "May"
+        Case "06"
+            GetMonthAbbreviation = "Jun"
+        Case "07"
+            GetMonthAbbreviation = "Jul"
+        Case "08"
+            GetMonthAbbreviation = "Aug"
+        Case "09"
+            GetMonthAbbreviation = "Sep"
+        Case "10"
+            GetMonthAbbreviation = "Oct"
+        Case "11"
+            GetMonthAbbreviation = "Nov"
+        Case "12"
+            GetMonthAbbreviation = "Dec"
+        Case Else
+            GetMonthAbbreviation = "Invalid"
+    End Select
+End Function
