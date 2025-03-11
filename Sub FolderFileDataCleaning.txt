@@ -1,30 +1,56 @@
-Function GetMonthAbbreviation(monthNumber As String) As String
-    Select Case monthNumber
-        Case "01"
-            GetMonthAbbreviation = "Jan"
-        Case "02"
-            GetMonthAbbreviation = "Feb"
-        Case "03"
-            GetMonthAbbreviation = "Mar"
-        Case "04"
-            GetMonthAbbreviation = "Apr"
-        Case "05"
-            GetMonthAbbreviation = "May"
-        Case "06"
-            GetMonthAbbreviation = "Jun"
-        Case "07"
-            GetMonthAbbreviation = "Jul"
-        Case "08"
-            GetMonthAbbreviation = "Aug"
-        Case "09"
-            GetMonthAbbreviation = "Sep"
-        Case "10"
-            GetMonthAbbreviation = "Oct"
-        Case "11"
-            GetMonthAbbreviation = "Nov"
-        Case "12"
-            GetMonthAbbreviation = "Dec"
-        Case Else
-            GetMonthAbbreviation = "Invalid"
-    End Select
-End Function
+Option Explicit
+Public SapGuiAuto
+Public objGui As GuiApplication
+Public objConn As GuiConnection
+Public session As GuiSession
+
+Sub CC_524003_Extraction()
+
+' Pointing object variables to SAP session with the following line of codes
+' To create a connection between the script below and SAP
+Set SapGuiAuto = GetObject("SAPGUI")
+Set objGui = SapGuiAuto.GetScriptingEngine
+Set objConn = objGui.Children(0)
+Set session = objConn.Children(0)
+
+Dim selectedFiscalYear As String
+Dim selectedPeriodFrom As String
+Dim selectedPeriodTo As String
+Dim selectedControllingArea As String
+Dim selectedCostCentre As String
+
+selectedFiscalYear = ActiveWorkbook.ActiveSheet.Range("B3").Value
+selectedPeriodFrom = ActiveWorkbook.ActiveSheet.Range("B4").Value
+selectedPeriodTo = ActiveWorkbook.ActiveSheet.Range("B5").Value
+selectedControllingArea = ActiveWorkbook.ActiveSheet.Range("E8").Value
+selectedCostCentre = ActiveWorkbook.ActiveSheet.Range("E9").Value
+
+session.FindById("wnd[0]").Maximize
+session.FindById("wnd[0]/tbar[0]/okcd").Text = "S_ALR_87013611"
+session.FindById("wnd[0]").SendVKey 0
+session.FindById("wnd[0]/usr/ctxt$1KOKRE").Text = selectedControllingArea
+session.FindById("wnd[0]/usr/txt$1GJAHR").Text = selectedFiscalYear
+session.FindById("wnd[0]/usr/ctxt$1PERIV").Text = selectedPeriodFrom
+session.FindById("wnd[0]/usr/ctxt$1PERIB").Text = selectedPeriodTo
+session.FindById("wnd[0]/usr/ctxt_1KOSET-LOW").Text = selectedCostCentre
+session.FindById("wnd[0]/usr/ctxt_1KOSET-LOW").SetFocus
+session.FindById("wnd[0]/usr/ctxt_1KOSET-LOW").CaretPosition = 6
+session.FindById("wnd[0]/tbar[1]/btn[8]").Press
+session.FindById("wnd[0]/mbar/menu[6]/menu[5]/menu[2]/menu[2]").Select
+session.FindById("wnd[1]/usr/subSUBSCREEN_STEPLOOP:SAPLSPO5:0150/sub:SAPLSPO5:0150/radSPOPLI-SELFLAG[1,0]").Select
+session.FindById("wnd[1]/usr/subSUBSCREEN_STEPLOOP:SAPLSPO5:0150/sub:SAPLSPO5:0150/radSPOPLI-SELFLAG[1,0]").SetFocus
+session.FindById("wnd[1]/tbar[0]/btn[0]").Press
+session.FindById("wnd[1]/usr/ctxtDY_PATH").Text = "\\psgsgf06\SCR\Finance\Restricted\==PWS\Automation\3. SAP Scripting\Monthly Documents"
+session.FindById("wnd[1]/usr/ctxtDY_FILENAME").Text = selectedCostCentre & "_" & selectedFiscalYear & "_" & selectedPeriodFrom & "_" & "to" & "_" & selectedPeriodTo & ".xls"
+session.FindById("wnd[1]/usr/ctxtDY_FILENAME").CaretPosition = 27
+session.FindById("wnd[1]/tbar[0]/btn[0]").Press
+session.FindById("wnd[0]/tbar[0]/btn[3]").Press
+session.FindById("wnd[1]/usr/btnBUTTON_YES").Press
+
+MsgBox "Script Completed."
+
+End Sub
+
+
+
+
