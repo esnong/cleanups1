@@ -6,6 +6,7 @@ Sub Folder_File_Conversion_V2()
     Dim fso As Object
     Dim FolderPicker As FileDialog
     Dim ErrorFlag As Boolean
+    Dim labelInfo As Object
     
     MsgBox "You are working on Step 1: Converting all files in a folder from .xls format to .xlsx format (readable format)", vbInformation
     
@@ -48,7 +49,10 @@ Sub Folder_File_Conversion_V2()
         
         ' Apply sensitivity label (if MIP is enabled)
         On Error Resume Next ' Prevent error if SensitivityLabel is not available
-        wb.SensitivityLabel.SetLabel "NO TECH DATA"
+        Set labelInfo = wb.SensitivityLabel
+        If Not labelInfo Is Nothing Then
+            labelInfo.SetLabel "NO TECH DATA"
+        End If
         On Error GoTo 0
         
         ' Close the workbook
