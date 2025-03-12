@@ -4,12 +4,19 @@ Sub Folder_File_Conversion_V2()
     Dim FileName As String
     Dim NewFileName As String
     Dim fso As Object
+    Dim FolderPicker As FileDialog
     Dim ErrorFlag As Boolean
     
-    ' Define the folder path (Update this path as needed)
-    FolderPath = "C:\Your\Folder\Path\"
-    
     MsgBox "You are working on Step 1: Converting all files in a folder from .xls format to .xlsx format (readable format)", vbInformation
+    
+    ' Ask user to select a folder
+    Set FolderPicker = Application.FileDialog(msoFileDialogFolderPicker)
+    With FolderPicker
+        .Title = "Select Folder Containing .xls Files"
+        .AllowMultiSelect = False
+        If .Show <> -1 Then Exit Sub ' If user cancels, exit the macro
+        FolderPath = .SelectedItems(1) & "\"
+    End With
     
     ' Create FileSystemObject
     Set fso = CreateObject("Scripting.FileSystemObject")
@@ -27,8 +34,8 @@ Sub Folder_File_Conversion_V2()
         
         ' Check if .xlsx file already exists
         If fso.FileExists(NewFileName) Then
-            MsgBox "Error: Files in .xlsx format exist. " & _
-                   "Conversion stopped to prevent overwriting.", vbExclamation, "Conversion Error"
+            MsgBox "Error: Files in .xlsx format exists" & _
+                    "Conversion stopped to prevent overwriting.", vbExclamation, "Conversion Error"
             ErrorFlag = True
             Exit Do ' Stop the process
         End If
@@ -55,6 +62,6 @@ Sub Folder_File_Conversion_V2()
     
     ' Show completion message if no errors
     If Not ErrorFlag Then
-        MsgBox "Conversion completed! All .xls files have been converted into .xlsx", vbInformation, "Success"
+        MsgBox " Conversion completed! All .xls files have been converted into .xlsx", vbInformation, "Success"
     End If
 End Sub
