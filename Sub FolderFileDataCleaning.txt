@@ -1,94 +1,71 @@
-Option Explicit
-Public SapGuiAuto
-Public objGui As GuiApplication
-Public objConn As GuiConnection
-Public session As GuiSession
-
-Sub CC_524003_Extraction()
-
-' Pointing object variables to SAP session with the following line of codes
-' To create a connection between the script below and SAP
-Set SapGuiAuto = GetObject("SAPGUI")
-Set objGui = SapGuiAuto.GetScriptingEngine
-Set objConn = objGui.Children(0)
-Set session = objConn.Children(0)
-
-Dim selectedFiscalYear As String
-Dim selectedPeriodFrom As String
-Dim selectedPeriodTo As String
-Dim selectedControllingArea As String
-Dim selectedCostCentre As String
-Dim monthFrom As String
-Dim monthTo As String
-
-selectedFiscalYear = ActiveWorkbook.ActiveSheet.Range("B3").Value
-selectedPeriodFrom = ActiveWorkbook.ActiveSheet.Range("B4").Value
-selectedPeriodTo = ActiveWorkbook.ActiveSheet.Range("B5").Value
-selectedControllingArea = ActiveWorkbook.ActiveSheet.Range("E8").Value
-selectedCostCentre = ActiveWorkbook.ActiveSheet.Range("E9").Value
-
-' Convert period (month) numbers to month abbreviations
-monthFrom = GetMonthAbbreviation(Left(selectedPeriodFrom, 2))
-monthTo = GetMonthAbbreviation(Left(selectedPeriodTo, 2))
-
-' Build filename in the format "jan_to_mar_524003_2025"
-Dim fileName As String
-fileName = monthFrom & "_to_" & monthTo & "_" & selectedCostCentre & "_" & selectedFiscalYear
-
-session.FindById("wnd[0]").Maximize
-session.FindById("wnd[0]/tbar[0]/okcd").Text = "S_ALR_87013611"
-session.FindById("wnd[0]").SendVKey 0
-session.FindById("wnd[0]/usr/ctxt$1KOKRE").Text = selectedControllingArea
-session.FindById("wnd[0]/usr/txt$1GJAHR").Text = selectedFiscalYear
-session.FindById("wnd[0]/usr/ctxt$1PERIV").Text = selectedPeriodFrom
-session.FindById("wnd[0]/usr/ctxt$1PERIB").Text = selectedPeriodTo
-session.FindById("wnd[0]/usr/ctxt_1KOSET-LOW").Text = selectedCostCentre
-session.FindById("wnd[0]/usr/ctxt_1KOSET-LOW").SetFocus
-session.FindById("wnd[0]/usr/ctxt_1KOSET-LOW").CaretPosition = 6
-session.FindById("wnd[0]/tbar[1]/btn[8]").Press
-session.FindById("wnd[0]/mbar/menu[6]/menu[5]/menu[2]/menu[2]").Select
-session.FindById("wnd[1]/usr/subSUBSCREEN_STEPLOOP:SAPLSPO5:0150/sub:SAPLSPO5:0150/radSPOPLI-SELFLAG[1,0]").Select
-session.FindById("wnd[1]/usr/subSUBSCREEN_STEPLOOP:SAPLSPO5:0150/sub:SAPLSPO5:0150/radSPOPLI-SELFLAG[1,0]").SetFocus
-session.FindById("wnd[1]/tbar[0]/btn[0]").Press
-session.FindById("wnd[1]/usr/ctxtDY_PATH").Text = "\\psgsgf06\SCR\Finance\Restricted\==PWS\Automation\3. SAP Scripting\Monthly Documents"
-session.FindById("wnd[1]/usr/ctxtDY_FILENAME").Text = fileName & ".xls"
-session.FindById("wnd[1]/usr/ctxtDY_FILENAME").CaretPosition = Len(fileName) + 5
-session.FindById("wnd[1]/tbar[0]/btn[0]").Press
-session.FindById("wnd[0]/tbar[0]/btn[3]").Press
-session.FindById("wnd[1]/usr/btnBUTTON_YES").Press
-
-MsgBox "Script Completed."
-
+Sub Folder_File_Conversion_V2()
+    Dim wb As Workbook
+    Dim FolderPath As String
+    Dim FileName As String
+    Dim NewFileName As String
+    Dim fso As Object
+    Dim FolderPicker As FileDialog
+    Dim ErrorFlag As Boolean
+    
+    MsgBox "You are working on Step 1: Converting all files in a folder from .xls format to .xlsx format (readable format)", vbInformation
+    
+    ' Ask user to select a folder
+    Set FolderPicker = Application.FileDialog(msoFileDialogFolderPicker)
+    With FolderPicker
+        .Title = "Select Folder Containing .xls Files"
+        .AllowMultiSelect = False
+        If .Show <> -1 Then Exit Sub ' If user cancels, exit the macro
+        FolderPath = .SelectedItems(1) & "\"
+    End With
+    
+    ' Create FileSystemObject
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    
+    ' Initialize error flag
+    ErrorFlag = False
+    
+    ' Get the first .xls file
+    FileName = Dir(FolderPath & "*.xls")
+    
+    ' Loop through all .xls files in the folder
+    Do While FileName <> ""
+        ' Define new filename (replace .xls with .xlsx)
+        NewFileName = FolderPath & fso.GetBaseName(FileName) & ".xlsx"
+        
+        ' Check if .xlsx file already exists
+        If fso.FileExists(NewFileName) Then
+            MsgBox "Error: Files in .xlsx format exists" & _
+                    "Conversion stopped to prevent overwriting.", vbExclamation, "Conversion Error"
+            ErrorFlag = True
+            Exit Do ' Stop the process
+        End If
+        
+        ' Open the .xls file
+        Set wb = Workbooks.Open(FolderPath & FileName)
+        
+        ' Save as .xlsx file
+        wb.SaveAs NewFileName, FileFormat:=xlOpenXMLWorkbook
+        
+        ' Close the workbook
+        wb.Close False
+        
+        ' Delete the original .xls file
+        fso.DeleteFile FolderPath & FileName, True
+        
+        ' Get the next .xls file
+        FileName = Dir
+        
+    Loop
+    
+    ' Clean Up
+    Set fso = Nothing
+    
+    ' Show completion message if no errors
+    If Not ErrorFlag Then
+        MsgBox " Conversion completed! All .xls files have been converted into .xlsx", vbInformation, "Success"
+    End If
 End Sub
+                    
 
-' Function to convert month number (01, 02, ...) to month abbreviation (Jan, Feb, ...)
-Function GetMonthAbbreviation(monthNumber As String) As String
-    Select Case monthNumber
-        Case "01"
-            GetMonthAbbreviation = "Jan"
-        Case "02"
-            GetMonthAbbreviation = "Feb"
-        Case "03"
-            GetMonthAbbreviation = "Mar"
-        Case "04"
-            GetMonthAbbreviation = "Apr"
-        Case "05"
-            GetMonthAbbreviation = "May"
-        Case "06"
-            GetMonthAbbreviation = "Jun"
-        Case "07"
-            GetMonthAbbreviation = "Jul"
-        Case "08"
-            GetMonthAbbreviation = "Aug"
-        Case "09"
-            GetMonthAbbreviation = "Sep"
-        Case "10"
-            GetMonthAbbreviation = "Oct"
-        Case "11"
-            GetMonthAbbreviation = "Nov"
-        Case "12"
-            GetMonthAbbreviation = "Dec"
-        Case Else
-            GetMonthAbbreviation = "Invalid"
-    End Select
-End Function
+
+
