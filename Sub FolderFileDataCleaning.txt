@@ -6,7 +6,7 @@ Sub Folder_File_Conversion_V2()
     Dim fso As Object
     Dim FolderPicker As FileDialog
     Dim ErrorFlag As Boolean
-    Dim prop As Object
+    Dim labelInfo As Object
     
     MsgBox "You are working on Step 1: Converting all files in a folder from .xls format to .xlsx format (readable format)", vbInformation
     
@@ -44,17 +44,19 @@ Sub Folder_File_Conversion_V2()
         ' Open the .xls file
         Set wb = Workbooks.Open(FolderPath & FileName)
         
-        ' Save as .xlsx file
-        wb.SaveAs NewFileName, FileFormat:=xlOpenXMLWorkbook
-        
-        ' Add custom property for sensitivity label
+        ' Apply Sensitivity Label (if available)
         On Error Resume Next
-        Set prop = wb.CustomDocumentProperties
-        prop.Add Name:="Sensitivity", LinkToContent:=False, Type:=msoPropertyTypeString, Value:="NO TECH DATA"
+        Set labelInfo = wb.SensitivityLabel
+        If Not labelInfo Is Nothing Then
+            labelInfo.SetLabel "NO TECH DATA"
+        End If
         On Error GoTo 0
         
-        ' Close the workbook
-        wb.Close True
+        ' Save as .xlsx file (AFTER setting sensitivity label)
+        wb.SaveAs NewFileName, FileFormat:=xlOpenXMLWorkbook
+        
+        ' Close the workbook (ensure changes are saved)
+        wb.Close SaveChanges:=True
         
         ' Delete the original .xls file
         fso.DeleteFile FolderPath & FileName, True
