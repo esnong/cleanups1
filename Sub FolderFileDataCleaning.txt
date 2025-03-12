@@ -34,8 +34,8 @@ Sub Folder_File_Conversion_V2()
         
         ' Check if .xlsx file already exists
         If fso.FileExists(NewFileName) Then
-            MsgBox "Error: Files in .xlsx format exists" & _
-                    "Conversion stopped to prevent overwriting.", vbExclamation, "Conversion Error"
+            MsgBox "Error: Files in .xlsx format exist." & _
+                    " Conversion stopped to prevent overwriting.", vbExclamation, "Conversion Error"
             ErrorFlag = True
             Exit Do ' Stop the process
         End If
@@ -45,6 +45,11 @@ Sub Folder_File_Conversion_V2()
         
         ' Save as .xlsx file
         wb.SaveAs NewFileName, FileFormat:=xlOpenXMLWorkbook
+        
+        ' Apply sensitivity label (if MIP is enabled)
+        On Error Resume Next ' Prevent error if SensitivityLabel is not available
+        wb.SensitivityLabel.SetLabel "NO TECH DATA"
+        On Error GoTo 0
         
         ' Close the workbook
         wb.Close False
@@ -62,6 +67,6 @@ Sub Folder_File_Conversion_V2()
     
     ' Show completion message if no errors
     If Not ErrorFlag Then
-        MsgBox " Conversion completed! All .xls files have been converted into .xlsx", vbInformation, "Success"
+        MsgBox "Conversion completed! All .xls files have been converted into .xlsx", vbInformation, "Success"
     End If
 End Sub
