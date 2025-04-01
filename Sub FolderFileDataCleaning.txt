@@ -11,9 +11,9 @@ Sub AddNewColumnWithFormulas()
     ' Find the last column in the sheet
     lastColumn = ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column
     
-    ' Calculate the second last and third last columns
-    secondLastColumn = lastColumn - 1
-    thirdLastColumn = lastColumn - 2
+    ' Update the second last and third last columns as per your request
+    secondLastColumn = lastColumn
+    thirdLastColumn = lastColumn - 1
     
     ' Ask the user for a header for the new column
     newHeader = InputBox("Enter the header for the new column:")
