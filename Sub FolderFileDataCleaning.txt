@@ -1,1 +1,37 @@
-Each month, we conduct an overview and analysis of our finance expenditures to ensure we stay within the planned budget and that projects are funded according to expectations and requirements. To streamline this process, previous interns have automated several steps. The automated process begins by downloading reports from our central invoice system, SAP, where we retrieve monthly data. These reports then need to be cleaned, and the relevant information is entered into a central Excel file. This Excel file serves as the data source for PowerBI, where the data is visualized. Below is a simplified outline of the process:
+Sub AddNewColumnWithFormulas()
+    Dim ws As Worksheet
+    Dim newHeader As String
+    Dim lastColumn As Long
+    Dim secondLastColumn As Long
+    Dim thirdLastColumn As Long
+    
+    ' Set reference to the "Table" sheet
+    Set ws = ThisWorkbook.Sheets("Table")
+    
+    ' Find the last column in the sheet
+    lastColumn = ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column
+    
+    ' Calculate the second last and third last columns
+    secondLastColumn = lastColumn - 1
+    thirdLastColumn = lastColumn - 2
+    
+    ' Ask the user for a header for the new column
+    newHeader = InputBox("Enter the header for the new column:")
+
+    ' Insert a new column before the second last column
+    ws.Columns(secondLastColumn).Insert Shift:=xlToRight
+    
+    ' Set the header of the new column
+    ws.Cells(1, secondLastColumn).Value = newHeader
+    
+    ' Copy formulas from the third last column to the second last column
+    ws.Range(ws.Cells(2, thirdLastColumn), ws.Cells(ws.Rows.Count, thirdLastColumn).End(xlUp)).Copy
+    ws.Cells(2, secondLastColumn).PasteSpecial Paste:=xlPasteFormulas
+    
+    ' Copy the values (without formulas) from the third last column and paste into the second last column
+    ws.Range(ws.Cells(2, thirdLastColumn), ws.Cells(ws.Rows.Count, thirdLastColumn).End(xlUp)).Copy
+    ws.Cells(2, secondLastColumn).PasteSpecial Paste:=xlPasteValues
+    
+    ' Turn off copy mode
+    Application.CutCopyMode = False
+End Sub
