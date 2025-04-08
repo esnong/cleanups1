@@ -1,37 +1,12 @@
-Sub AddNewColumnWithFormulas()
-    Dim ws As Worksheet
-    Dim newHeader As String
-    Dim lastColumn As Long
-    Dim secondLastColumn As Long
-    Dim thirdLastColumn As Long
-    
-    ' Set reference to the "Table" sheet
-    Set ws = ThisWorkbook.Sheets("Table")
-    
-    ' Find the last column in the sheet
-    lastColumn = ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column
-    
-    ' Update the second last and third last columns as per your request
-    secondLastColumn = lastColumn
-    thirdLastColumn = lastColumn - 1
-    
-    ' Ask the user for a header for the new column
-    newHeader = InputBox("Enter the header for the new column:")
+Display Col1 = 
+VAR currentRow = SELECTEDVALUE('YourTable'[RowHeader]) -- replace 'RowHeader' with your actual row identifier column
+VAR val1 = SELECTEDVALUE('YourTable'[Col1])
+VAR val2 = SELECTEDVALUE('YourTable'[Col2])
+VAR val3 = SELECTEDVALUE('YourTable'[Col3])
+VAR val4 = SELECTEDVALUE('YourTable'[Col4])
 
-    ' Insert a new column before the second last column
-    ws.Columns(secondLastColumn).Insert Shift:=xlToRight
-    
-    ' Set the header of the new column
-    ws.Cells(1, secondLastColumn).Value = newHeader
-    
-    ' Copy formulas from the third last column to the second last column
-    ws.Range(ws.Cells(2, thirdLastColumn), ws.Cells(ws.Rows.Count, thirdLastColumn).End(xlUp)).Copy
-    ws.Cells(2, secondLastColumn).PasteSpecial Paste:=xlPasteFormulas
-    
-    ' Copy the values (without formulas) from the third last column and paste into the second last column
-    ws.Range(ws.Cells(2, thirdLastColumn), ws.Cells(ws.Rows.Count, thirdLastColumn).End(xlUp)).Copy
-    ws.Cells(2, secondLastColumn).PasteSpecial Paste:=xlPasteValues
-    
-    ' Turn off copy mode
-    Application.CutCopyMode = False
-End Sub
+RETURN
+IF(currentRow = "Special Row",  -- replace with the actual row value you're targeting
+    val1 & " " & val2 & " " & val3 & " " & val4,
+    val1
+)
