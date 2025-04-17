@@ -1,12 +1,26 @@
-Display Col1 = 
-VAR currentRow = SELECTEDVALUE('YourTable'[RowHeader]) -- replace 'RowHeader' with your actual row identifier column
-VAR val1 = SELECTEDVALUE('YourTable'[Col1])
-VAR val2 = SELECTEDVALUE('YourTable'[Col2])
-VAR val3 = SELECTEDVALUE('YourTable'[Col3])
-VAR val4 = SELECTEDVALUE('YourTable'[Col4])
+Sub SplitAllColumns()
+    Dim ws As Worksheet
+    Dim lastRow As Long
+    Dim i As Long
+    Dim splitData As Variant
+    Dim j As Long
 
-RETURN
-IF(currentRow = "Special Row",  -- replace with the actual row value you're targeting
-    val1 & " " & val2 & " " & val3 & " " & val4,
-    val1
-)
+    ' Set your worksheet
+    Set ws = ThisWorkbook.Sheets("Sheet1") ' Change to your actual sheet name
+
+    ' Find the last row in column A
+    lastRow = ws.Cells(ws.Rows.Count, "A").End(xlUp).Row
+
+    ' Loop through each row in column A
+    For i = 1 To lastRow
+        ' Split the row content by "|"
+        splitData = Split(ws.Cells(i, 1).Value, "|")
+
+        ' Output each split value to the appropriate column
+        For j = 0 To UBound(splitData)
+            ws.Cells(i, j + 1).Value = Trim(splitData(j)) ' Trim removes extra spaces
+        Next j
+    Next i
+
+    MsgBox "Done! All rows have been split by '|'", vbInformation
+End Sub
