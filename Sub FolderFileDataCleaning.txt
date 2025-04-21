@@ -1,15 +1,18 @@
-Sub CleanAndFormatCSVFiles()
+Sub CleanAndFormatCSVFiles_UTF8()
     Dim folderPath As String
     Dim fileName As String
     Dim fullPath As String
-    Dim fileNum As Integer
+    Dim fileContent As String
     Dim lineText As String
-    Dim cleanedLines As String
     Dim lineParts() As String
     Dim i As Long
     Dim fDialog As FileDialog
+    Dim lines As Collection
+    Dim line As Variant
+    Dim ts As Object ' TextStream
+    Dim fso As Object ' FileSystemObject
 
-    ' Let user pick a folder
+    ' Pick folder
     Set fDialog = Application.FileDialog(msoFileDialogFolderPicker)
     If fDialog.Show <> -1 Then Exit Sub
     folderPath = fDialog.SelectedItems(1) & "\"
@@ -18,37 +21,36 @@ Sub CleanAndFormatCSVFiles()
 
     Application.ScreenUpdating = False
 
+    Set fso = CreateObject("Scripting.FileSystemObject")
+
     Do While fileName <> ""
         fullPath = folderPath & fileName
-        cleanedLines = ""
+        Set lines = New Collection
 
-        ' Read each line from CSV
-        fileNum = FreeFile
-        Open fullPath For Input As #fileNum
-        Do While Not EOF(fileNum)
-            Line Input #fileNum, lineText
+        ' Read file line by line
+        Open fullPath For Input As #1
+        Do While Not EOF(1)
+            Line Input #1, lineText
             lineParts = Split(lineText, "|")
-            
-            ' Clean each part (remove stray pipes inside values)
             For i = 0 To UBound(lineParts)
                 lineParts(i) = Replace(lineParts(i), "|", "")
                 lineParts(i) = Trim(lineParts(i))
             Next i
-            
-            ' Rebuild line using commas (standard CSV format)
-            cleanedLines = cleanedLines & Join(lineParts, ",") & vbCrLf
+            lines.Add Join(lineParts, ",")
         Loop
-        Close #fileNum
+        Close #1
 
-        ' Overwrite original CSV file with cleaned content
-        fileNum = FreeFile
-        Open fullPath For Output As #fileNum
-        Print #fileNum, cleanedLines
-        Close #fileNum
+        ' Overwrite with UTF-8 BOM encoding
+        Set ts = fso.CreateTextFile(fullPath, True, True) ' True = Overwrite, True = UTF-8
+        For Each line In lines
+            ts.WriteLine line
+        Next line
+        ts.Close
 
         fileName = Dir
     Loop
 
     Application.ScreenUpdating = True
-    MsgBox "All CSV files cleaned and formatted into columns!"
+    MsgBox "All CSV files cleaned and saved properly!"
 End Sub
+
