@@ -1,16 +1,15 @@
-Sub FormatCSVFilesProperly()
+Sub CleanCSVFilesToProperUTF8()
     Dim folderPath As String
     Dim fileName As String
     Dim fullPath As String
-    Dim wb As Workbook
-    Dim ws As Worksheet
     Dim lineText As String
     Dim lineParts() As String
-    Dim rowNum As Long, colNum As Long
+    Dim i As Long, r As Long, c As Long
     Dim fDialog As FileDialog
-    Dim fileNum As Integer
+    Dim wb As Workbook, ws As Worksheet
+    Dim tempFilePath As String
 
-    ' Ask user to select folder
+    ' Select folder
     Set fDialog = Application.FileDialog(msoFileDialogFolderPicker)
     If fDialog.Show <> -1 Then Exit Sub
     folderPath = fDialog.SelectedItems(1) & "\"
@@ -18,41 +17,68 @@ Sub FormatCSVFilesProperly()
     fileName = Dir(folderPath & "*.csv")
 
     Application.ScreenUpdating = False
+    Application.DisplayAlerts = False
 
     Do While fileName <> ""
         fullPath = folderPath & fileName
 
-        ' Create new workbook
+        ' Create new workbook to store cleaned content
         Set wb = Workbooks.Add
         Set ws = wb.Sheets(1)
 
-        ' Read file line by line
-        fileNum = FreeFile
-        Open fullPath For Input As #fileNum
-
-        rowNum = 1
-        Do While Not EOF(fileNum)
-            Line Input #fileNum, lineText
+        ' Read the file line-by-line
+        r = 1
+        Open fullPath For Input As #1
+        Do While Not EOF(1)
+            Line Input #1, lineText
             lineParts = Split(lineText, "|")
-
-            For colNum = 0 To UBound(lineParts)
-                ' Clean any stray pipes and spaces
-                ws.Cells(rowNum, colNum + 1).Value = Replace(Trim(lineParts(colNum)), "|", "")
-            Next colNum
-            rowNum = rowNum + 1
+            For c = 0 To UBound(lineParts)
+                ws.Cells(r, c + 1).Value = Replace(Trim(lineParts(c)), "|", "")
+            Next c
+            r = r + 1
         Loop
-        Close #fileNum
+        Close #1
 
-        ' Save back as CSV — overwriting original
-        Application.DisplayAlerts = False
-        wb.SaveAs Filename:=fullPath, FileFormat:=xlCSV
-        wb.Close SaveChanges:=False
-        Application.DisplayAlerts = True
+        ' Save as temporary UTF-8 CSV using FSO
+        tempFilePath = folderPath & Left(fileName, InStrRev(fileName, ".") - 1) & "_temp.csv"
+        SaveSheetAsUTF8 ws, tempFilePath
 
+        ' Replace original file
+        Kill fullPath
+        Name tempFilePath As fullPath
+
+        wb.Close False
         fileName = Dir
     Loop
 
+    Application.DisplayAlerts = True
     Application.ScreenUpdating = True
-    MsgBox "All CSV files cleaned, formatted to rows/columns, and saved!"
+
+    MsgBox "All CSV files have been cleaned and reformatted correctly!"
 End Sub
 
+' Utility to save worksheet as UTF-8 encoded CSV using FileSystemObject
+Sub SaveSheetAsUTF8(ws As Worksheet, savePath As String)
+    Dim fso As Object, stream As Object
+    Dim r As Long, c As Long, lastRow As Long, lastCol As Long
+    Dim lineText As String
+
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    Set stream = fso.CreateTextFile(savePath, True, True) ' True = overwrite, UTF-8 with BOM
+
+    With ws
+        lastRow = .Cells(.Rows.Count, 1).End(xlUp).Row
+        lastCol = .Cells(1, .Columns.Count).End(xlToLeft).Column
+
+        For r = 1 To lastRow
+            lineText = ""
+            For c = 1 To lastCol
+                lineText = lineText & .Cells(r, c).Text
+                If c < lastCol Then lineText = lineText & ","
+            Next c
+            stream.WriteLine lineText
+        Next r
+    End With
+
+    stream.Close
+End Sub
