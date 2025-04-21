@@ -12,10 +12,12 @@ Sub SearchAcrossCSVFiles()
     Dim cell As Range
     Dim headerCopied As Boolean
 
-    ' Set destination worksheet (clears previous results)
+    ' Set destination worksheet
     Set wsDest = ThisWorkbook.Sheets(1)
-    wsDest.Cells.Clear
-    destRow = 1
+    
+    ' Only clear existing output (starting from row 3)
+    wsDest.Range("A3:Z10000").ClearContents
+    destRow = 3 ' Start output from row 3 to avoid clearing input (B1)
 
     ' Get the search value from cell B1
     searchValue = wsDest.Range("B1").Value
@@ -39,7 +41,6 @@ Sub SearchAcrossCSVFiles()
         matchFound = False
         headerCopied = False
 
-        ' Open the CSV file as a workbook
         Set wbCSV = Workbooks.Open(folderPath & fileName)
         Set wsCSV = wbCSV.Sheets(1)
 
@@ -62,9 +63,8 @@ Sub SearchAcrossCSVFiles()
             End If
         Next cell
 
-        ' Separate results by a blank row if match was found
         If matchFound Then
-            destRow = destRow + 1
+            destRow = destRow + 1 ' Blank row between results
         End If
 
         wbCSV.Close False
@@ -72,5 +72,5 @@ Sub SearchAcrossCSVFiles()
     Loop
 
     Application.ScreenUpdating = True
-    MsgBox "Search complete!", vbInformation
+    MsgBox "CSV search complete!", vbInformation
 End Sub
