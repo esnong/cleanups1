@@ -1,26 +1,57 @@
-Sub SplitAllColumns()
+Sub ProcessCSVFilesInFolder()
+    Dim folderPath As String
+    Dim fileName As String
+    Dim fullPath As String
     Dim ws As Worksheet
-    Dim lastRow As Long
-    Dim i As Long
-    Dim splitData As Variant
-    Dim j As Long
+    Dim rawData As Variant
+    Dim cleanedData As Variant
+    Dim lineText As String
+    Dim fileNum As Integer
+    Dim lineParts() As String
+    Dim r As Long, c As Long
+    Dim fDialog As FileDialog
 
-    ' Set your worksheet
-    Set ws = ThisWorkbook.Sheets("Sheet1") ' Change to your actual sheet name
+    ' Let user select folder
+    Set fDialog = Application.FileDialog(msoFileDialogFolderPicker)
+    If fDialog.Show <> -1 Then Exit Sub
+    folderPath = fDialog.SelectedItems(1) & "\"
 
-    ' Find the last row in column A
-    lastRow = ws.Cells(ws.Rows.Count, "A").End(xlUp).Row
+    fileName = Dir(folderPath & "*.csv")
+    
+    Application.ScreenUpdating = False
 
-    ' Loop through each row in column A
-    For i = 1 To lastRow
-        ' Split the row content by "|"
-        splitData = Split(ws.Cells(i, 1).Value, "|")
+    Do While fileName <> ""
+        fullPath = folderPath & fileName
+        
+        ' Add new sheet for each CSV
+        Set ws = Workbooks.Add(xlWorksheet).Sheets(1)
+        ws.Name = Replace(fileName, ".csv", "")
+        
+        ' Open file manually and read lines
+        fileNum = FreeFile
+        Open fullPath For Input As #fileNum
+        
+        r = 1
+        Do While Not EOF(fileNum)
+            Line Input #fileNum, lineText
+            ' Clean the line (remove existing pipes inside values if any)
+            lineText = Replace(lineText, "||", "|") ' Clean double pipes first
+            lineText = Replace(lineText, Chr(34), "") ' Remove quotes
+            lineParts = Split(lineText, "|")
+            
+            For c = 0 To UBound(lineParts)
+                ' Remove any internal pipes in values
+                ws.Cells(r, c + 1).Value = Replace(lineParts(c), "|", "")
+            Next c
+            
+            r = r + 1
+        Loop
+        
+        Close #fileNum
+        
+        fileName = Dir
+    Loop
 
-        ' Output each split value to the appropriate column
-        For j = 0 To UBound(splitData)
-            ws.Cells(i, j + 1).Value = Trim(splitData(j)) ' Trim removes extra spaces
-        Next j
-    Next i
-
-    MsgBox "Done! All rows have been split by '|'", vbInformation
+    Application.ScreenUpdating = True
+    MsgBox "CSV processing completed!"
 End Sub
