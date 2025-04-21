@@ -6,13 +6,11 @@ Sub RunCSVSearch()
     Dim resultRow As Long
     Dim fileName As String
     Dim fullPath As String
-    Dim wbCSV As Workbook
-    Dim wsCSV As Worksheet
-    Dim r As Long, c As Long
-    Dim lastRow As Long, lastCol As Long
-    Dim foundMatch As Boolean
-    Dim fieldInfo() As Variant
+    Dim fileNum As Integer
+    Dim lineText As String
+    Dim splitLine() As String
     Dim i As Long
+    Dim lineCount As Long
 
     Set ws = ThisWorkbook.Sheets("CSV_Search")
     searchTerm = Trim(ws.Range("B1").Value)
@@ -42,47 +40,31 @@ Sub RunCSVSearch()
 
     Do While fileName <> ""
         fullPath = folderPath & fileName
-
-        ' Read first line to determine column count
-        Dim lineText As String, fileNum As Integer, colCount As Long
         fileNum = FreeFile
+        lineCount = 0
+
         Open fullPath For Input As #fileNum
-        Line Input #fileNum, lineText
+        Do While Not EOF(fileNum)
+            Line Input #fileNum, lineText
+            lineCount = lineCount + 1
+
+            If InStr(1, lineText, searchTerm, vbTextCompare) > 0 Then
+                ' Match found
+                splitLine = Split(lineText, "|") ' Adjust delimiter here if needed
+
+                ws.Cells(resultRow, 1).Value = fileName
+                ws.Cells(resultRow, 2).Value = "Row " & lineCount
+
+                ' Write values as raw text
+                For i = 0 To UBound(splitLine)
+                    ws.Cells(resultRow, i + 3).Value = "'" & splitLine(i)
+                Next i
+
+                resultRow = resultRow + 1
+            End If
+        Loop
         Close #fileNum
-        colCount = UBound(Split(lineText, ",")) + 1  ' Assuming comma-separated
 
-        ' Create FieldInfo array with all columns as Text
-        ReDim fieldInfo(1 To colCount, 1 To 2)
-        For i = 1 To colCount
-            fieldInfo(i, 1) = i
-            fieldInfo(i, 2) = xlTextFormat
-        Next i
-
-        ' Open file as text, force all fields as text
-        Workbooks.OpenText Filename:=fullPath, _
-            DataType:=xlDelimited, _
-            Comma:=True, _
-            FieldInfo:=fieldInfo
-
-        Set wbCSV = ActiveWorkbook
-        Set wsCSV = wbCSV.Sheets(1)
-
-        lastRow = wsCSV.Cells(wsCSV.Rows.Count, 1).End(xlUp).Row
-
-        For r = 1 To lastRow
-            lastCol = wsCSV.Cells(r, wsCSV.Columns.Count).End(xlToLeft).Column
-            For c = 1 To lastCol
-                If InStr(1, wsCSV.Cells(r, c).Text, searchTerm, vbTextCompare) > 0 Then
-                    ' Match found - copy row to results
-                    ws.Cells(resultRow, 1).Value = fileName
-                    ws.Cells(resultRow, 2).Resize(1, lastCol).Value = wsCSV.Cells(r, 1).Resize(1, lastCol).Value
-                    resultRow = resultRow + 1
-                    Exit For
-                End If
-            Next c
-        Next r
-
-        wbCSV.Close SaveChanges:=False
         fileName = Dir
     Loop
 
