@@ -6,12 +6,13 @@ Sub RunCSVSearch()
     Dim resultRow As Long
     Dim fileName As String
     Dim fullPath As String
-    Dim fileNum As Integer
-    Dim lineText As String
-    Dim splitLine() As String
-    Dim i As Long
-    Dim lineCount As Long
+    Dim wbCSV As Workbook
+    Dim wsCSV As Worksheet
+    Dim r As Long, c As Long
+    Dim lastRow As Long, lastCol As Long
+    Dim cellValue As String
 
+    ' Set search input
     Set ws = ThisWorkbook.Sheets("CSV_Search")
     searchTerm = Trim(ws.Range("B1").Value)
 
@@ -20,7 +21,7 @@ Sub RunCSVSearch()
         Exit Sub
     End If
 
-    ' Prompt for folder selection
+    ' Folder picker
     With Application.FileDialog(msoFileDialogFolderPicker)
         .Title = "Select Folder with CSV Files"
         If .Show <> -1 Then Exit Sub
@@ -30,7 +31,7 @@ Sub RunCSVSearch()
     Application.ScreenUpdating = False
     Application.DisplayAlerts = False
 
-    ' Clear previous results
+    ' Clear old results
     ws.Range("A5:Z10000").ClearContents
     ws.Range("A4").Value = "File Name"
     ws.Range("B4").Value = "Matched Row"
@@ -40,31 +41,32 @@ Sub RunCSVSearch()
 
     Do While fileName <> ""
         fullPath = folderPath & fileName
-        fileNum = FreeFile
-        lineCount = 0
 
-        Open fullPath For Input As #fileNum
-        Do While Not EOF(fileNum)
-            Line Input #fileNum, lineText
-            lineCount = lineCount + 1
+        ' Open CSV as workbook (default way, Excel will format it)
+        Set wbCSV = Workbooks.Open(fullPath)
+        Set wsCSV = wbCSV.Sheets(1)
 
-            If InStr(1, lineText, searchTerm, vbTextCompare) > 0 Then
-                ' Match found
-                splitLine = Split(lineText, "|") ' Adjust delimiter here if needed
+        lastRow = wsCSV.Cells(wsCSV.Rows.Count, 1).End(xlUp).Row
 
-                ws.Cells(resultRow, 1).Value = fileName
-                ws.Cells(resultRow, 2).Value = "Row " & lineCount
+        For r = 1 To lastRow
+            lastCol = wsCSV.Cells(r, wsCSV.Columns.Count).End(xlToLeft).Column
+            For c = 1 To lastCol
+                cellValue = wsCSV.Cells(r, c).Text ' ← Use .Text to get exactly what’s shown
+                If InStr(1, cellValue, searchTerm, vbTextCompare) > 0 Then
+                    ws.Cells(resultRow, 1).Value = fileName
+                    ws.Cells(resultRow, 2).Value = "Row " & r
 
-                ' Write values as raw text
-                For i = 0 To UBound(splitLine)
-                    ws.Cells(resultRow, i + 3).Value = "'" & splitLine(i)
-                Next i
+                    For c = 1 To lastCol
+                        ws.Cells(resultRow, c + 2).Value = "'" & wsCSV.Cells(r, c).Text ' Preserve original text
+                    Next c
 
-                resultRow = resultRow + 1
-            End If
-        Loop
-        Close #fileNum
+                    resultRow = resultRow + 1
+                    Exit For
+                End If
+            Next c
+        Next r
 
+        wbCSV.Close SaveChanges:=False
         fileName = Dir
     Loop
 
