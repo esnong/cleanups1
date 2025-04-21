@@ -1,67 +1,86 @@
-Sub ProcessCSVFiles_PreserveText()
+Sub ProcessCSVFiles_PreserveText_Verbose()
 
     Dim folderPath As String
     Dim fileName As String
     Dim fullPath As String
     Dim wb As Workbook
+    Dim fieldInfo As Variant
     
-    ' Prompt user to select a folder
+    ' Prompt for folder selection
     With Application.FileDialog(msoFileDialogFolderPicker)
-        .Title = "Select Folder Containing CSV Files"
-        If .Show <> -1 Then Exit Sub
+        .Title = "Select Folder with CSV Files"
+        If .Show <> -1 Then
+            MsgBox "No folder selected. Exiting."
+            Exit Sub
+        End If
         folderPath = .SelectedItems(1) & "\"
     End With
 
     Application.ScreenUpdating = False
     Application.DisplayAlerts = False
 
-    ' Loop through each CSV file in the folder
     fileName = Dir(folderPath & "*.csv")
+
+    If fileName = "" Then
+        MsgBox "No CSV files found in the selected folder.", vbExclamation
+        Exit Sub
+    End If
+
     Do While fileName <> ""
         fullPath = folderPath & fileName
+        Debug.Print "Processing: " & fullPath
         
-        ' Open the CSV using pipe delimiter and treat all fields as text
+        ' Dynamically detect field count & build FieldInfo array
+        fieldInfo = BuildTextFieldInfo(fullPath)
+
+        On Error GoTo FileOpenError
         Workbooks.OpenText _
             Filename:=fullPath, _
             DataType:=xlDelimited, _
             Other:=True, OtherChar:="|", _
-            FieldInfo:=BuildTextFieldInfo(fullPath)
-        
-        Set wb = ActiveWorkbook
+            FieldInfo:=fieldInfo
 
-        ' Optional: Save as Excel file or overwrite the CSV
-        ' wb.SaveAs Filename:=Replace(fullPath, ".csv", "_processed.xlsx"), FileFormat:=xlOpenXMLWorkbook
+        Set wb = ActiveWorkbook
+        wb.Save
         wb.Close SaveChanges:=True
+        On Error GoTo 0
         
         fileName = Dir
+        GoTo ContinueLoop
+
+FileOpenError:
+        MsgBox "Could not open file: " & fileName, vbCritical
+        On Error GoTo 0
+
+ContinueLoop:
     Loop
 
     Application.DisplayAlerts = True
     Application.ScreenUpdating = True
 
-    MsgBox "All CSV files have been processed with text preserved.", vbInformation
+    MsgBox "All CSV files processed successfully.", vbInformation
 
 End Sub
 
 Function BuildTextFieldInfo(filePath As String) As Variant
-    ' Dynamically determine how many fields are in the first line
-    Dim lineText As String
+    ' Read the first line of the file to count columns
     Dim fileNum As Integer
-    Dim columnCount As Long
+    Dim firstLine As String
     Dim i As Long
+    Dim fieldCount As Long
     Dim fieldInfo() As Variant
 
     fileNum = FreeFile
     Open filePath For Input As #fileNum
-    Line Input #fileNum, lineText
+    Line Input #fileNum, firstLine
     Close #fileNum
 
-    columnCount = UBound(Split(lineText, "|")) + 1
-    ReDim fieldInfo(1 To columnCount, 1 To 2)
+    fieldCount = UBound(Split(firstLine, "|")) + 1
+    ReDim fieldInfo(1 To fieldCount, 1 To 2)
 
-    For i = 1 To columnCount
+    For i = 1 To fieldCount
         fieldInfo(i, 1) = i
-        fieldInfo(i, 2) = xlTextFormat  ' Force as text
+        fieldInfo(i, 2) = xlTextFormat  ' Force all as Text
     Next i
 
     BuildTextFieldInfo = fieldInfo
