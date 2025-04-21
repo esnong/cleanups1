@@ -1,11 +1,11 @@
-Sub SearchAcrossCSVFiles()
+Sub SearchAcrossExcelFilesFromRow2()
     Dim folderPath As String
     Dim fileName As String
     Dim searchValue As Variant
     Dim wsDest As Worksheet
     Dim destRow As Long
-    Dim wbCSV As Workbook
-    Dim wsCSV As Worksheet
+    Dim wbSource As Workbook
+    Dim wsSource As Worksheet
     Dim matchFound As Boolean
     Dim lastRow As Long
     Dim lastCol As Long
@@ -15,62 +15,64 @@ Sub SearchAcrossCSVFiles()
     ' Set destination worksheet
     Set wsDest = ThisWorkbook.Sheets(1)
     
-    ' Only clear existing output (starting from row 3)
+    ' Clear old results, but keep cell B1 intact
     wsDest.Range("A3:Z10000").ClearContents
-    destRow = 3 ' Start output from row 3 to avoid clearing input (B1)
+    destRow = 3 ' Start output from row 3
 
-    ' Get the search value from cell B1
+    ' Get search value from B1
     searchValue = wsDest.Range("B1").Value
     If searchValue = "" Then
-        MsgBox "Please enter a value in cell B1.", vbExclamation
+        MsgBox "Please enter a search value in cell B1.", vbExclamation
         Exit Sub
     End If
 
-    ' Ask user to select folder
+    ' Prompt folder selection
     With Application.FileDialog(msoFileDialogFolderPicker)
-        .Title = "Select a Folder"
+        .Title = "Select a folder containing Excel files"
         If .Show <> -1 Then Exit Sub
         folderPath = .SelectedItems(1) & "\"
     End With
 
     Application.ScreenUpdating = False
 
-    ' Loop through all .csv files in the folder
-    fileName = Dir(folderPath & "*.csv")
+    ' Search for Excel files
+    fileName = Dir(folderPath & "*.xls*")
     Do While fileName <> ""
-        matchFound = False
-        headerCopied = False
+        If fileName <> ThisWorkbook.Name Then
+            Set wbSource = Workbooks.Open(folderPath & fileName, False, True) ' Read-only
+            Set wsSource = wbSource.Sheets(1)
+            
+            matchFound = False
+            headerCopied = False
 
-        Set wbCSV = Workbooks.Open(folderPath & fileName)
-        Set wsCSV = wbCSV.Sheets(1)
+            lastRow = wsSource.Cells(wsSource.Rows.Count, 1).End(xlUp).Row
+            lastCol = wsSource.Cells(1, wsSource.Columns.Count).End(xlToLeft).Column
 
-        lastRow = wsCSV.Cells(wsCSV.Rows.Count, 1).End(xlUp).Row
-        lastCol = wsCSV.Cells(1, wsCSV.Columns.Count).End(xlToLeft).Column
-
-        ' Scan from row 5 onward
-        For Each cell In wsCSV.Range(wsCSV.Cells(5, 1), wsCSV.Cells(lastRow, lastCol))
-            If cell.Value = searchValue Then
-                If Not headerCopied Then
-                    ' Copy header row (row 1)
-                    wsCSV.Range(wsCSV.Cells(1, 1), wsCSV.Cells(1, lastCol)).Copy wsDest.Cells(destRow, 1)
+            ' Start from row 2
+            For Each cell In wsSource.Range(wsSource.Cells(2, 1), wsSource.Cells(lastRow, lastCol))
+                If cell.Value = searchValue Then
+                    If Not headerCopied Then
+                        ' Copy header (row 1)
+                        wsSource.Range(wsSource.Cells(1, 1), wsSource.Cells(1, lastCol)).Copy wsDest.Cells(destRow, 1)
+                        destRow = destRow + 1
+                        headerCopied = True
+                    End If
+                    ' Copy matched row
+                    wsSource.Range(wsSource.Cells(cell.Row, 1), wsSource.Cells(cell.Row, lastCol)).Copy wsDest.Cells(destRow, 1)
                     destRow = destRow + 1
-                    headerCopied = True
+                    matchFound = True
                 End If
-                ' Copy matched row
-                wsCSV.Range(wsCSV.Cells(cell.Row, 1), wsCSV.Cells(cell.Row, lastCol)).Copy wsDest.Cells(destRow, 1)
-                destRow = destRow + 1
-                matchFound = True
+            Next cell
+
+            If matchFound Then
+                destRow = destRow + 1 ' Add blank row between results
             End If
-        Next cell
 
-        If matchFound Then
-            destRow = destRow + 1 ' Blank row between results
+            wbSource.Close False
         End If
-
-        wbCSV.Close False
         fileName = Dir
     Loop
 
     Application.ScreenUpdating = True
-    MsgBox "CSV search complete!", vbInformation
+    MsgBox "Search across Excel files complete!", vbInformation
 End Sub
