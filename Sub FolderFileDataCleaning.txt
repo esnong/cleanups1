@@ -1,53 +1,49 @@
-Sub FormatCSV_ProperlyIntoColumns()
+Sub ProcessCSVFiles()
+
     Dim folderPath As String
     Dim fileName As String
-    Dim fullPath As String
-    Dim lineText As String
-    Dim lineParts() As String
-    Dim rowNum As Long, colNum As Long
     Dim wb As Workbook
     Dim ws As Worksheet
-    Dim fDialog As FileDialog
+    Dim lastRow As Long
+    Dim i As Long
+    
+    ' Prompt user to select a folder
+    With Application.FileDialog(msoFileDialogFolderPicker)
+        .Title = "Select Folder Containing CSV Files"
+        If .Show <> -1 Then Exit Sub
+        folderPath = .SelectedItems(1) & "\"
+    End With
 
-    ' Let user select folder
-    Set fDialog = Application.FileDialog(msoFileDialogFolderPicker)
-    If fDialog.Show <> -1 Then Exit Sub
-    folderPath = fDialog.SelectedItems(1) & "\"
+    ' Find all .csv files in folder
+    fileName = Dir(folderPath & "*.csv")
 
     Application.ScreenUpdating = False
     Application.DisplayAlerts = False
 
-    ' Loop through each .csv file
-    fileName = Dir(folderPath & "*.csv")
     Do While fileName <> ""
-        fullPath = folderPath & fileName
+        ' Open the CSV file as text to avoid Excel auto-formatting
+        Workbooks.OpenText Filename:=folderPath & fileName, _
+            DataType:=xlDelimited, _
+            Other:=True, OtherChar:="|", _
+            FieldInfo:=Array(1, 1)
 
-        ' Open a new workbook and insert a worksheet
-        Set wb = Workbooks.Add
+        Set wb = ActiveWorkbook
         Set ws = wb.Sheets(1)
 
-        ' Open original CSV file for reading
-        Open fullPath For Input As #1
-        rowNum = 1
-        Do While Not EOF(1)
-            Line Input #1, lineText
-            lineParts = Split(lineText, "|") ' split using pipe
-            For colNum = 0 To UBound(lineParts)
-                ws.Cells(rowNum, colNum + 1).Value = Trim(lineParts(colNum))
-            Next colNum
-            rowNum = rowNum + 1
-        Loop
-        Close #1
+        ' Optional: Save as proper Excel format (you can comment this out if not needed)
+        ' wb.SaveAs Filename:=Replace(wb.FullName, ".csv", "_converted.xlsx"), FileFormat:=xlOpenXMLWorkbook
 
-        ' Save the workbook as CSV, overwriting the original file
-        wb.SaveAs Filename:=fullPath, FileFormat:=xlCSV
-        wb.Close SaveChanges:=False
+        ' Save the cleaned-up CSV
+        wb.SaveAs Filename:=wb.Path & "\" & wb.Name, FileFormat:=xlCSV
 
-        fileName = Dir ' Move to next file
+        wb.Close SaveChanges:=True
+
+        fileName = Dir  ' Move to next file
     Loop
 
     Application.DisplayAlerts = True
     Application.ScreenUpdating = True
 
-    MsgBox "All CSV files formatted correctly into rows and columns!"
+    MsgBox "All CSV files have been processed.", vbInformation
+
 End Sub
