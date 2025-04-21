@@ -1,87 +1,82 @@
-Sub ProcessCSVFiles_PreserveText_Verbose()
-
+Sub SearchCSVFilesInFolder()
     Dim folderPath As String
     Dim fileName As String
+    Dim searchTerm As String
+    Dim wsResult As Worksheet
+    Dim resultRow As Long
+    Dim wbCSV As Workbook
+    Dim wsCSV As Worksheet
+    Dim cell As Range
+    Dim rng As Range
     Dim fullPath As String
-    Dim wb As Workbook
-    Dim fieldInfo As Variant
-    
-    ' Prompt for folder selection
+    Dim lastRow As Long, lastCol As Long
+    Dim r As Long, c As Long
+    Dim foundMatch As Boolean
+
+    ' Ask for search term
+    searchTerm = InputBox("Enter the text or number to search for:", "Search CSV Files")
+    If searchTerm = "" Then Exit Sub
+
+    ' Ask for folder
     With Application.FileDialog(msoFileDialogFolderPicker)
         .Title = "Select Folder with CSV Files"
-        If .Show <> -1 Then
-            MsgBox "No folder selected. Exiting."
-            Exit Sub
-        End If
+        If .Show <> -1 Then Exit Sub
         folderPath = .SelectedItems(1) & "\"
     End With
 
     Application.ScreenUpdating = False
     Application.DisplayAlerts = False
 
+    ' Create a new worksheet for results
+    Set wsResult = ThisWorkbook.Sheets.Add
+    wsResult.Name = "Search Results"
+    wsResult.Cells(1, 1).Value = "File Name"
+    wsResult.Cells(1, 2).Value = "Matched Row"
+    resultRow = 2
+
+    ' Loop through all CSV files
     fileName = Dir(folderPath & "*.csv")
-
-    If fileName = "" Then
-        MsgBox "No CSV files found in the selected folder.", vbExclamation
-        Exit Sub
-    End If
-
     Do While fileName <> ""
         fullPath = folderPath & fileName
-        Debug.Print "Processing: " & fullPath
-        
-        ' Dynamically detect field count & build FieldInfo array
-        fieldInfo = BuildTextFieldInfo(fullPath)
-
-        On Error GoTo FileOpenError
-        Workbooks.OpenText _
-            Filename:=fullPath, _
+        Workbooks.OpenText Filename:=fullPath, _
             DataType:=xlDelimited, _
             Other:=True, OtherChar:="|", _
-            FieldInfo:=fieldInfo
+            FieldInfo:=Array(1, 2)
 
-        Set wb = ActiveWorkbook
-        wb.Save
-        wb.Close SaveChanges:=True
-        On Error GoTo 0
-        
+        Set wbCSV = ActiveWorkbook
+        Set wsCSV = wbCSV.Sheets(1)
+
+        lastRow = wsCSV.Cells(wsCSV.Rows.Count, 1).End(xlUp).Row
+        foundMatch = False
+
+        For r = 1 To lastRow
+            lastCol = wsCSV.Cells(r, wsCSV.Columns.Count).End(xlToLeft).Column
+            For c = 1 To lastCol
+                If InStr(1, wsCSV.Cells(r, c).Text, searchTerm, vbTextCompare) > 0 Then
+                    ' Match found — copy entire row to results
+                    wsResult.Cells(resultRow, 1).Value = fileName
+                    wsResult.Cells(resultRow, 2).Resize(1, lastCol).Value = wsCSV.Cells(r, 1).Resize(1, lastCol).Value
+                    resultRow = resultRow + 1
+                    foundMatch = True
+                    Exit For
+                End If
+            Next c
+        Next r
+
+        wbCSV.Close SaveChanges:=False
         fileName = Dir
-        GoTo ContinueLoop
-
-FileOpenError:
-        MsgBox "Could not open file: " & fileName, vbCritical
-        On Error GoTo 0
-
-ContinueLoop:
     Loop
 
     Application.DisplayAlerts = True
     Application.ScreenUpdating = True
 
-    MsgBox "All CSV files processed successfully.", vbInformation
+    If resultRow = 2 Then
+        MsgBox "No matches found for: " & searchTerm, vbInformation
+        Application.DisplayAlerts = False
+        wsResult.Delete
+        Application.DisplayAlerts = True
+    Else
+        MsgBox "Search completed! Found " & resultRow - 2 & " matching row(s).", vbInformation
+    End If
 
 End Sub
-
-Function BuildTextFieldInfo(filePath As String) As Variant
-    ' Read the first line of the file to count columns
-    Dim fileNum As Integer
-    Dim firstLine As String
-    Dim i As Long
-    Dim fieldCount As Long
-    Dim fieldInfo() As Variant
-
-    fileNum = FreeFile
-    Open filePath For Input As #fileNum
-    Line Input #fileNum, firstLine
-    Close #fileNum
-
-    fieldCount = UBound(Split(firstLine, "|")) + 1
-    ReDim fieldInfo(1 To fieldCount, 1 To 2)
-
-    For i = 1 To fieldCount
-        fieldInfo(i, 1) = i
-        fieldInfo(i, 2) = xlTextFormat  ' Force all as Text
-    Next i
-
-    BuildTextFieldInfo = fieldInfo
-End Function
