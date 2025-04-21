@@ -8,9 +8,10 @@ Sub RunCSVSearch()
     Dim fullPath As String
     Dim wbCSV As Workbook
     Dim wsCSV As Worksheet
-    Dim r As Long, c As Long
+    Dim r As Long, col As Long
     Dim lastRow As Long, lastCol As Long
     Dim cellValue As String
+    Dim copyCol As Long
 
     ' Set search input
     Set ws = ThisWorkbook.Sheets("CSV_Search")
@@ -42,7 +43,7 @@ Sub RunCSVSearch()
     Do While fileName <> ""
         fullPath = folderPath & fileName
 
-        ' Open CSV as workbook (default way, Excel will format it)
+        ' Open CSV normally (structure is already row/column aligned)
         Set wbCSV = Workbooks.Open(fullPath)
         Set wsCSV = wbCSV.Sheets(1)
 
@@ -50,20 +51,24 @@ Sub RunCSVSearch()
 
         For r = 1 To lastRow
             lastCol = wsCSV.Cells(r, wsCSV.Columns.Count).End(xlToLeft).Column
-            For c = 1 To lastCol
-                cellValue = wsCSV.Cells(r, c).Text ' ← Use .Text to get exactly what’s shown
+
+            For col = 1 To lastCol
+                cellValue = wsCSV.Cells(r, col).Text ' Get what is *shown*, not auto-formatted
+
                 If InStr(1, cellValue, searchTerm, vbTextCompare) > 0 Then
+                    ' Match found
                     ws.Cells(resultRow, 1).Value = fileName
                     ws.Cells(resultRow, 2).Value = "Row " & r
 
-                    For c = 1 To lastCol
-                        ws.Cells(resultRow, c + 2).Value = "'" & wsCSV.Cells(r, c).Text ' Preserve original text
-                    Next c
+                    ' Copy all cell values in row, preserving original format
+                    For copyCol = 1 To lastCol
+                        ws.Cells(resultRow, copyCol + 2).Value = "'" & wsCSV.Cells(r, copyCol).Text
+                    Next copyCol
 
                     resultRow = resultRow + 1
                     Exit For
                 End If
-            Next c
+            Next col
         Next r
 
         wbCSV.Close SaveChanges:=False
