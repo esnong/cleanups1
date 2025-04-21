@@ -1,23 +1,27 @@
-Sub SearchCSVFilesInFolder()
-    Dim folderPath As String
-    Dim fileName As String
+Sub RunCSVSearch()
+
     Dim searchTerm As String
-    Dim wsResult As Worksheet
+    Dim folderPath As String
+    Dim ws As Worksheet
     Dim resultRow As Long
+    Dim fileName As String
+    Dim fullPath As String
     Dim wbCSV As Workbook
     Dim wsCSV As Worksheet
-    Dim cell As Range
-    Dim rng As Range
-    Dim fullPath As String
-    Dim lastRow As Long, lastCol As Long
     Dim r As Long, c As Long
+    Dim lastRow As Long, lastCol As Long
     Dim foundMatch As Boolean
+    Dim targetSheet As Worksheet
 
-    ' Ask for search term
-    searchTerm = InputBox("Enter the text or number to search for:", "Search CSV Files")
-    If searchTerm = "" Then Exit Sub
+    Set ws = ThisWorkbook.Sheets("CSV_Search")
+    searchTerm = Trim(ws.Range("B1").Value)
 
-    ' Ask for folder
+    If searchTerm = "" Then
+        MsgBox "Please enter a search term in cell B1.", vbExclamation
+        Exit Sub
+    End If
+
+    ' Prompt for folder selection
     With Application.FileDialog(msoFileDialogFolderPicker)
         .Title = "Select Folder with CSV Files"
         If .Show <> -1 Then Exit Sub
@@ -27,15 +31,14 @@ Sub SearchCSVFilesInFolder()
     Application.ScreenUpdating = False
     Application.DisplayAlerts = False
 
-    ' Create a new worksheet for results
-    Set wsResult = ThisWorkbook.Sheets.Add
-    wsResult.Name = "Search Results"
-    wsResult.Cells(1, 1).Value = "File Name"
-    wsResult.Cells(1, 2).Value = "Matched Row"
-    resultRow = 2
+    ' Clear previous results (from row 5 downward)
+    ws.Range("A5:Z10000").ClearContents
+    ws.Range("A4").Value = "File Name"
+    ws.Range("B4").Value = "Matched Row"
 
-    ' Loop through all CSV files
+    resultRow = 5
     fileName = Dir(folderPath & "*.csv")
+
     Do While fileName <> ""
         fullPath = folderPath & fileName
         Workbooks.OpenText Filename:=fullPath, _
@@ -47,17 +50,15 @@ Sub SearchCSVFilesInFolder()
         Set wsCSV = wbCSV.Sheets(1)
 
         lastRow = wsCSV.Cells(wsCSV.Rows.Count, 1).End(xlUp).Row
-        foundMatch = False
 
         For r = 1 To lastRow
             lastCol = wsCSV.Cells(r, wsCSV.Columns.Count).End(xlToLeft).Column
             For c = 1 To lastCol
                 If InStr(1, wsCSV.Cells(r, c).Text, searchTerm, vbTextCompare) > 0 Then
-                    ' Match found — copy entire row to results
-                    wsResult.Cells(resultRow, 1).Value = fileName
-                    wsResult.Cells(resultRow, 2).Resize(1, lastCol).Value = wsCSV.Cells(r, 1).Resize(1, lastCol).Value
+                    ' Match found - copy entire row
+                    ws.Cells(resultRow, 1).Value = fileName
+                    ws.Cells(resultRow, 2).Resize(1, lastCol).Value = wsCSV.Cells(r, 1).Resize(1, lastCol).Value
                     resultRow = resultRow + 1
-                    foundMatch = True
                     Exit For
                 End If
             Next c
@@ -70,13 +71,10 @@ Sub SearchCSVFilesInFolder()
     Application.DisplayAlerts = True
     Application.ScreenUpdating = True
 
-    If resultRow = 2 Then
-        MsgBox "No matches found for: " & searchTerm, vbInformation
-        Application.DisplayAlerts = False
-        wsResult.Delete
-        Application.DisplayAlerts = True
+    If resultRow = 5 Then
+        MsgBox "No matches found for """ & searchTerm & """", vbInformation
     Else
-        MsgBox "Search completed! Found " & resultRow - 2 & " matching row(s).", vbInformation
+        MsgBox "Search complete! " & (resultRow - 5) & " matches found.", vbInformation
     End If
 
 End Sub
