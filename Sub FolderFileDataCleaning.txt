@@ -1,57 +1,54 @@
-Sub ProcessCSVFilesInFolder()
+Sub CleanAndFormatCSVFiles()
     Dim folderPath As String
     Dim fileName As String
     Dim fullPath As String
-    Dim ws As Worksheet
-    Dim rawData As Variant
-    Dim cleanedData As Variant
-    Dim lineText As String
     Dim fileNum As Integer
+    Dim lineText As String
+    Dim cleanedLines As String
     Dim lineParts() As String
-    Dim r As Long, c As Long
+    Dim i As Long
     Dim fDialog As FileDialog
 
-    ' Let user select folder
+    ' Let user pick a folder
     Set fDialog = Application.FileDialog(msoFileDialogFolderPicker)
     If fDialog.Show <> -1 Then Exit Sub
     folderPath = fDialog.SelectedItems(1) & "\"
 
     fileName = Dir(folderPath & "*.csv")
-    
+
     Application.ScreenUpdating = False
 
     Do While fileName <> ""
         fullPath = folderPath & fileName
-        
-        ' Add new sheet for each CSV
-        Set ws = Workbooks.Add(xlWorksheet).Sheets(1)
-        ws.Name = Replace(fileName, ".csv", "")
-        
-        ' Open file manually and read lines
+        cleanedLines = ""
+
+        ' Read each line from CSV
         fileNum = FreeFile
         Open fullPath For Input As #fileNum
-        
-        r = 1
         Do While Not EOF(fileNum)
             Line Input #fileNum, lineText
-            ' Clean the line (remove existing pipes inside values if any)
-            lineText = Replace(lineText, "||", "|") ' Clean double pipes first
-            lineText = Replace(lineText, Chr(34), "") ' Remove quotes
             lineParts = Split(lineText, "|")
             
-            For c = 0 To UBound(lineParts)
-                ' Remove any internal pipes in values
-                ws.Cells(r, c + 1).Value = Replace(lineParts(c), "|", "")
-            Next c
+            ' Clean each part (remove stray pipes inside values)
+            For i = 0 To UBound(lineParts)
+                lineParts(i) = Replace(lineParts(i), "|", "")
+                lineParts(i) = Trim(lineParts(i))
+            Next i
             
-            r = r + 1
+            ' Rebuild line using commas (standard CSV format)
+            cleanedLines = cleanedLines & Join(lineParts, ",") & vbCrLf
         Loop
-        
         Close #fileNum
-        
+
+        ' Overwrite original CSV file with cleaned content
+        fileNum = FreeFile
+        Open fullPath For Output As #fileNum
+        Print #fileNum, cleanedLines
+        Close #fileNum
+
         fileName = Dir
     Loop
 
     Application.ScreenUpdating = True
-    MsgBox "CSV processing completed!"
+    MsgBox "All CSV files cleaned and formatted into columns!"
 End Sub
