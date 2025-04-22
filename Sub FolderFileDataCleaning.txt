@@ -1,94 +1,109 @@
 Option Explicit
 
-Sub SearchCSVFiles_Advanced()
-    Dim folderPath As String
-    Dim searchText As String
+Sub SearchCSVFiles_FullRowMatches_WithBlankRows()
+    Dim folderPath As String, searchText As String
     Dim resultRow As Long
     Dim fso As Object, folder As Object
+    Dim wsOutput As Worksheet
 
-    ' Get values from the worksheet
-    searchText = Trim(Sheets(1).Range("B1").Value)
-    folderPath = Trim(Sheets(1).Range("B2").Value)
+    ' Get active sheet and user input
+    Set wsOutput = ActiveSheet
+    searchText = Trim(wsOutput.Range("B1").Value)
+    folderPath = Trim(wsOutput.Range("B2").Value)
 
     If searchText = "" Or folderPath = "" Then
-        MsgBox "Please enter search text in B1 and folder path in B2 of the first sheet.", vbExclamation
+        MsgBox "Please enter search text in B1 and folder path in B2.", vbExclamation
         Exit Sub
     End If
 
     ' Validate folder
     Set fso = CreateObject("Scripting.FileSystemObject")
     If Not fso.FolderExists(folderPath) Then
-        MsgBox "The folder path in B2 doesn't exist.", vbCritical
+        MsgBox "Folder path in B2 doesn't exist.", vbCritical
         Exit Sub
     End If
 
-    ' Prepare results sheet
-    On Error Resume Next
-    Application.DisplayAlerts = False
-    Sheets("CSV Search Results").Delete
-    Application.DisplayAlerts = True
-    On Error GoTo 0
-    
-    Worksheets.Add(After:=Sheets(Sheets.Count)).Name = "CSV Search Results"
-    With ActiveSheet
-        .Cells(1, 1).Value = "File Path"
-        .Cells(1, 2).Value = "Cell Address"
-        .Cells(1, 3).Value = "Cell Value"
-    End With
-    resultRow = 2
+    ' Clear output area
+    wsOutput.Rows("5:" & wsOutput.Rows.Count).ClearContents
+    resultRow = 5
 
-    ' Start scanning
     Application.ScreenUpdating = False
-    Application.StatusBar = "Searching CSV files... please wait."
+    Application.StatusBar = "Starting search..."
     Set folder = fso.GetFolder(folderPath)
-    Call SearchCSVFolder(folder, searchText, resultRow)
+
+    ' Begin recursive search
+    Call SearchAndCopyMatchingRowsWithSpacing(folder, searchText, resultRow, wsOutput)
+
     Application.StatusBar = False
     Application.ScreenUpdating = True
-
     MsgBox "Search complete!", vbInformation
 End Sub
 
-Sub SearchCSVFolder(folder As Object, searchText As String, ByRef resultRow As Long)
+Sub SearchAndCopyMatchingRowsWithSpacing(folder As Object, searchText As String, ByRef resultRow As Long, wsOutput As Worksheet)
     Dim file As Object, subFolder As Object
     Dim wb As Workbook, ws As Worksheet
-    Dim foundCell As Range, firstAddress As String
-    Dim totalFiles As Long, processedFiles As Long
-
-    totalFiles = folder.Files.Count
-    processedFiles = 0
+    Dim lastCol As Long, lastRow As Long
+    Dim i As Long
+    Dim headerWritten As Boolean, foundInFile As Boolean
+    Dim rowContent As Variant
+    Dim cell As Range
+    Dim rowMatched As Boolean
 
     For Each file In folder.Files
         If LCase(Right(file.Name, 4)) = ".csv" Then
-            Application.StatusBar = "Checking: " & file.Name
+            Application.StatusBar = "Checking file: " & file.Path
             On Error Resume Next
-            Set wb = Workbooks.Open(file.Path, Format:=6) ' CSV format
+            Set wb = Workbooks.Open(file.Path, Format:=6)
             On Error GoTo 0
 
             If Not wb Is Nothing Then
                 Set ws = wb.Sheets(1)
-                Set foundCell = ws.Cells.Find(What:=searchText, LookIn:=xlValues, LookAt:=xlPart, MatchCase:=False)
-                
-                If Not foundCell Is Nothing Then
-                    firstAddress = foundCell.Address
-                    Do
-                        With ThisWorkbook.Sheets("CSV Search Results")
-                            .Cells(resultRow, 1).Value = file.Path
-                            .Cells(resultRow, 2).Value = foundCell.Address
-                            .Cells(resultRow, 3).Value = foundCell.Value
-                        End With
+                lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+                lastCol = ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column
+                headerWritten = False
+                foundInFile = False
+
+                For i = 2 To lastRow ' Start after header row
+                    rowContent = ws.Range(ws.Cells(i, 1), ws.Cells(i, lastCol)).Value
+                    rowMatched = False
+
+                    For Each cell In ws.Range(ws.Cells(i, 1), ws.Cells(i, lastCol))
+                        If InStr(1, cell.Value, searchText, vbTextCompare) > 0 Then
+                            rowMatched = True
+                            Exit For
+                        End If
+                    Next cell
+
+                    If rowMatched Then
+                        If Not headerWritten Then
+                            ' Write header row
+                            wsOutput.Cells(resultRow, 1).Value = "File Path"
+                            wsOutput.Range(wsOutput.Cells(resultRow, 2), wsOutput.Cells(resultRow, lastCol + 1)).Value = _
+                                ws.Range(ws.Cells(1, 1), ws.Cells(1, lastCol)).Value
+                            resultRow = resultRow + 1
+                            headerWritten = True
+                        End If
+
+                        ' Write matching row
+                        wsOutput.Cells(resultRow, 1).Value = file.Path
+                        wsOutput.Range(wsOutput.Cells(resultRow, 2), wsOutput.Cells(resultRow, lastCol + 1)).Value = rowContent
                         resultRow = resultRow + 1
-                        Set foundCell = ws.Cells.FindNext(foundCell)
-                    Loop While Not foundCell Is Nothing And foundCell.Address <> firstAddress
+                        foundInFile = True
+                    End If
+                Next i
+
+                ' Leave a blank row if we had matches in this file
+                If foundInFile Then
+                    resultRow = resultRow + 1
                 End If
-                
+
                 wb.Close SaveChanges:=False
             End If
         End If
-        processedFiles = processedFiles + 1
     Next file
 
-    ' Search subfolders recursively
+    ' Recurse through subfolders
     For Each subFolder In folder.SubFolders
-        SearchCSVFolder subFolder, searchText, resultRow
+        Call SearchAndCopyMatchingRowsWithSpacing(subFolder, searchText, resultRow, wsOutput)
     Next subFolder
 End Sub
