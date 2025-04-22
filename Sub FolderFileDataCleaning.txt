@@ -6,32 +6,33 @@ Sub SearchCSVFiles_FullRowMatches_WithBlankRows()
     Dim fso As Object, folder As Object
     Dim wsOutput As Worksheet
 
-    ' Get active sheet and user input
+    ' Read from active sheet
     Set wsOutput = ActiveSheet
-    searchText = Trim(wsOutput.Range("B1").Value)
-    folderPath = Trim(wsOutput.Range("B2").Value)
+    searchText = Trim(CStr(wsOutput.Range("B1").Value))
+    folderPath = Trim(CStr(wsOutput.Range("B2").Value))
 
     If searchText = "" Or folderPath = "" Then
         MsgBox "Please enter search text in B1 and folder path in B2.", vbExclamation
         Exit Sub
     End If
 
-    ' Validate folder
+    ' Validate folder path
     Set fso = CreateObject("Scripting.FileSystemObject")
     If Not fso.FolderExists(folderPath) Then
         MsgBox "Folder path in B2 doesn't exist.", vbCritical
         Exit Sub
     End If
 
-    ' Clear output area
+    ' Clear output starting from row 5
     wsOutput.Rows("5:" & wsOutput.Rows.Count).ClearContents
     resultRow = 5
 
+    ' Start search
     Application.ScreenUpdating = False
     Application.StatusBar = "Starting search..."
     Set folder = fso.GetFolder(folderPath)
 
-    ' Begin recursive search
+    ' Start recursive search
     Call SearchAndCopyMatchingRowsWithSpacing(folder, searchText, resultRow, wsOutput)
 
     Application.StatusBar = False
@@ -68,7 +69,7 @@ Sub SearchAndCopyMatchingRowsWithSpacing(folder As Object, searchText As String,
                     rowMatched = False
 
                     For Each cell In ws.Range(ws.Cells(i, 1), ws.Cells(i, lastCol))
-                        If InStr(1, cell.Value, searchText, vbTextCompare) > 0 Then
+                        If InStr(1, CStr(Trim(cell.Value)), CStr(Trim(searchText)), vbTextCompare) > 0 Then
                             rowMatched = True
                             Exit For
                         End If
@@ -84,7 +85,7 @@ Sub SearchAndCopyMatchingRowsWithSpacing(folder As Object, searchText As String,
                             headerWritten = True
                         End If
 
-                        ' Write matching row
+                        ' Write matched row
                         wsOutput.Cells(resultRow, 1).Value = file.Path
                         wsOutput.Range(wsOutput.Cells(resultRow, 2), wsOutput.Cells(resultRow, lastCol + 1)).Value = rowContent
                         resultRow = resultRow + 1
@@ -92,7 +93,7 @@ Sub SearchAndCopyMatchingRowsWithSpacing(folder As Object, searchText As String,
                     End If
                 Next i
 
-                ' Leave a blank row if we had matches in this file
+                ' Add blank row between file results
                 If foundInFile Then
                     resultRow = resultRow + 1
                 End If
@@ -102,7 +103,7 @@ Sub SearchAndCopyMatchingRowsWithSpacing(folder As Object, searchText As String,
         End If
     Next file
 
-    ' Recurse through subfolders
+    ' Recurse into subfolders
     For Each subFolder In folder.SubFolders
         Call SearchAndCopyMatchingRowsWithSpacing(subFolder, searchText, resultRow, wsOutput)
     Next subFolder
