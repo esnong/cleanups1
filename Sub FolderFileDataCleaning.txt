@@ -1,63 +1,15 @@
-Sub CombineMetadataCSVs()
-    Dim FSO As Object, folder As Object, subfolder As Object, file As Object
-    Dim folderPath As String
-    Dim ws As Worksheet
-    Dim lastRow As Long
-    Dim csvData As Workbook
-    Dim targetRow As Long
-    Dim filePath As String
-    
-    ' Prompt user to select folder
-    With Application.FileDialog(msoFileDialogFolderPicker)
-        .Title = "Select the Main Folder"
-        If .Show <> -1 Then Exit Sub
-        folderPath = .SelectedItems(1)
-    End With
-    
-    Application.ScreenUpdating = False
-    Application.DisplayAlerts = False
-    
-    ' Create new sheet for output
-    Set ws = ThisWorkbook.Sheets.Add
-    ws.Name = "Combined Metadata"
-    targetRow = 1
-    
-    ' Set up File System Object
-    Set FSO = CreateObject("Scripting.FileSystemObject")
-    Set folder = FSO.GetFolder(folderPath)
-    
-    ' Recursively loop through subfolders
-    Call GetMetadataFiles(folder, ws, targetRow)
-    
-    Application.ScreenUpdating = True
-    MsgBox "✅ All Metadata.csv files have been combined!", vbInformation
-End Sub
-
-Sub GetMetadataFiles(ByVal folder As Object, ByRef ws As Worksheet, ByRef targetRow As Long)
-    Dim subfolder As Object, file As Object
-    Dim csvData As Workbook
-    Dim filePath As String
-    Dim lastRow As Long
-    
-    For Each file In folder.Files
-        If LCase(file.Name) = "metadata.csv" Then
-            filePath = file.Path
-            Set csvData = Workbooks.Open(filePath)
-            
-            With csvData.Sheets(1)
-                lastRow = .Cells(.Rows.Count, 1).End(xlUp).Row
-                .Range("A1").CurrentRegion.Copy ws.Cells(targetRow, 1)
-            End With
-            
-            ' Add source folder info (optional)
-            ws.Cells(targetRow, ws.Cells(targetRow, Columns.Count).End(xlToLeft).Column + 1).Value = folder.Name
-            
-            targetRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row + 1
-            csvData.Close False
-        End If
-    Next file
-    
-    For Each subfolder In folder.SubFolders
-        Call GetMetadataFiles(subfolder, ws, targetRow)
-    Next subfolder
-End Sub
+=IFERROR(
+  INDEX(Table1[#All],
+    SMALL(
+      IF(ISNUMBER(SEARCH($C$3,
+        Table1[CompanyCode]&Table1[URN]&Table1[DocumentType]&Table1[Reception_Date]&
+        Table1[Invoice_Date]&Table1[Invoice_Num]&Table1[PO_Number]&Table1[Supplier_ID]&
+        Table1[Supplier_Name]&Table1[Currency_Code]&Table1[Invoice_Amount]&
+        Table1[Post Date]&Table1[ERPDocumentNumber]&Table1[Due_Date])),
+        ROW(Table1[CompanyCode]) - MIN(ROW(Table1[CompanyCode])) + 1),
+      ROWS($A$5:A5)
+    ),
+    COLUMNS($A$5:A5)
+  ),
+  ""
+)
