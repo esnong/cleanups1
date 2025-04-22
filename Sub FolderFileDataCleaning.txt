@@ -1,8 +1,94 @@
-Latest Headcount =
-VAR LatestDate =
-    MAX('STA Cost Center'[Date])
-RETURN
-    CALCULATE(
-        MAX('STA Cost Center'[Headcount]),
-        'STA Cost Center'[Date] = LatestDate
-    )
+Option Explicit
+
+Sub SearchCSVFiles_Advanced()
+    Dim folderPath As String
+    Dim searchText As String
+    Dim resultRow As Long
+    Dim fso As Object, folder As Object
+
+    ' Get values from the worksheet
+    searchText = Trim(Sheets(1).Range("B1").Value)
+    folderPath = Trim(Sheets(1).Range("B2").Value)
+
+    If searchText = "" Or folderPath = "" Then
+        MsgBox "Please enter search text in B1 and folder path in B2 of the first sheet.", vbExclamation
+        Exit Sub
+    End If
+
+    ' Validate folder
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    If Not fso.FolderExists(folderPath) Then
+        MsgBox "The folder path in B2 doesn't exist.", vbCritical
+        Exit Sub
+    End If
+
+    ' Prepare results sheet
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    Sheets("CSV Search Results").Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    
+    Worksheets.Add(After:=Sheets(Sheets.Count)).Name = "CSV Search Results"
+    With ActiveSheet
+        .Cells(1, 1).Value = "File Path"
+        .Cells(1, 2).Value = "Cell Address"
+        .Cells(1, 3).Value = "Cell Value"
+    End With
+    resultRow = 2
+
+    ' Start scanning
+    Application.ScreenUpdating = False
+    Application.StatusBar = "Searching CSV files... please wait."
+    Set folder = fso.GetFolder(folderPath)
+    Call SearchCSVFolder(folder, searchText, resultRow)
+    Application.StatusBar = False
+    Application.ScreenUpdating = True
+
+    MsgBox "Search complete!", vbInformation
+End Sub
+
+Sub SearchCSVFolder(folder As Object, searchText As String, ByRef resultRow As Long)
+    Dim file As Object, subFolder As Object
+    Dim wb As Workbook, ws As Worksheet
+    Dim foundCell As Range, firstAddress As String
+    Dim totalFiles As Long, processedFiles As Long
+
+    totalFiles = folder.Files.Count
+    processedFiles = 0
+
+    For Each file In folder.Files
+        If LCase(Right(file.Name, 4)) = ".csv" Then
+            Application.StatusBar = "Checking: " & file.Name
+            On Error Resume Next
+            Set wb = Workbooks.Open(file.Path, Format:=6) ' CSV format
+            On Error GoTo 0
+
+            If Not wb Is Nothing Then
+                Set ws = wb.Sheets(1)
+                Set foundCell = ws.Cells.Find(What:=searchText, LookIn:=xlValues, LookAt:=xlPart, MatchCase:=False)
+                
+                If Not foundCell Is Nothing Then
+                    firstAddress = foundCell.Address
+                    Do
+                        With ThisWorkbook.Sheets("CSV Search Results")
+                            .Cells(resultRow, 1).Value = file.Path
+                            .Cells(resultRow, 2).Value = foundCell.Address
+                            .Cells(resultRow, 3).Value = foundCell.Value
+                        End With
+                        resultRow = resultRow + 1
+                        Set foundCell = ws.Cells.FindNext(foundCell)
+                    Loop While Not foundCell Is Nothing And foundCell.Address <> firstAddress
+                End If
+                
+                wb.Close SaveChanges:=False
+            End If
+        End If
+        processedFiles = processedFiles + 1
+    Next file
+
+    ' Search subfolders recursively
+    For Each subFolder In folder.SubFolders
+        SearchCSVFolder subFolder, searchText, resultRow
+    Next subFolder
+End Sub
