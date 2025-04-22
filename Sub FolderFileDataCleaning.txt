@@ -1,15 +1,1 @@
-=IFERROR(
-  INDEX(Table1[#All],
-    SMALL(
-      IF(ISNUMBER(SEARCH($C$3,
-        Table1[CompanyCode]&Table1[URN]&Table1[DocumentType]&Table1[Reception_Date]&
-        Table1[Invoice_Date]&Table1[Invoice_Num]&Table1[PO_Number]&Table1[Supplier_ID]&
-        Table1[Supplier_Name]&Table1[Currency_Code]&Table1[Invoice_Amount]&
-        Table1[Post Date]&Table1[ERPDocumentNumber]&Table1[Due_Date])),
-        ROW(Table1[CompanyCode]) - MIN(ROW(Table1[CompanyCode])) + 1),
-      ROWS($A$5:A5)
-    ),
-    COLUMNS($A$5:A5)
-  ),
-  ""
-)
+=IFERROR(INDEX(Table1[#All], SMALL(IF(ISNUMBER(SEARCH($C$3, Table1[CompanyCode]&Table1[URN]&Table1[DocumentType]&Table1[Reception_Date]&Table1[Invoice_Date]&Table1[Invoice_Num]&Table1[PO_Number]&Table1[Supplier_ID]&Table1[Supplier_Name]&Table1[Currency_Code]&Table1[Invoice_Amount]&Table1[Post Date]&Table1[ERPDocumentNumber]&Table1[Due_Date])), ROW(Table1[CompanyCode])-MIN(ROW(Table1[CompanyCode]))+1), ROWS($A$5:A5)), COLUMNS($A$5:A5)), "")
