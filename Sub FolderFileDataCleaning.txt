@@ -1,76 +1,8 @@
-Sub SearchCSVFilesFromRow2()
-    Dim folderPath As String
-    Dim fileName As String
-    Dim searchValue As Variant
-    Dim wsDest As Worksheet
-    Dim destRow As Long
-    Dim wbCSV As Workbook
-    Dim wsCSV As Worksheet
-    Dim matchFound As Boolean
-    Dim lastRow As Long
-    Dim lastCol As Long
-    Dim cell As Range
-    Dim headerCopied As Boolean
-
-    ' Use first sheet of current workbook for results
-    Set wsDest = ThisWorkbook.Sheets(1)
-
-    ' Clear old output without deleting B1 or headers
-    wsDest.Range("A3:Z10000").ClearContents
-    destRow = 3 ' Start output here
-
-    ' Get search value from B1
-    searchValue = Trim(wsDest.Range("B1").Value)
-    If searchValue = "" Then
-        MsgBox "Please enter a search value in cell B1.", vbExclamation
-        Exit Sub
-    End If
-
-    ' Select folder
-    With Application.FileDialog(msoFileDialogFolderPicker)
-        .Title = "Select Folder with CSV Files"
-        If .Show <> -1 Then Exit Sub
-        folderPath = .SelectedItems(1) & "\"
-    End With
-
-    Application.ScreenUpdating = False
-
-    fileName = Dir(folderPath & "*.csv")
-    Do While fileName <> ""
-        matchFound = False
-        headerCopied = False
-
-        ' Open the CSV file
-        Set wbCSV = Workbooks.Open(folderPath & fileName)
-        Set wsCSV = wbCSV.Sheets(1)
-
-        lastRow = wsCSV.Cells(wsCSV.Rows.Count, 1).End(xlUp).Row
-        lastCol = wsCSV.Cells(1, wsCSV.Columns.Count).End(xlToLeft).Column
-
-        ' Search from row 2 onward
-        For Each cell In wsCSV.Range(wsCSV.Cells(2, 1), wsCSV.Cells(lastRow, lastCol))
-            If StrComp(cell.Value, searchValue, vbTextCompare) = 0 Then
-                If Not headerCopied Then
-                    ' Copy header row
-                    wsCSV.Range(wsCSV.Cells(1, 1), wsCSV.Cells(1, lastCol)).Copy wsDest.Cells(destRow, 1)
-                    destRow = destRow + 1
-                    headerCopied = True
-                End If
-                ' Copy matching row
-                wsCSV.Range(wsCSV.Cells(cell.Row, 1), wsCSV.Cells(cell.Row, lastCol)).Copy wsDest.Cells(destRow, 1)
-                destRow = destRow + 1
-                matchFound = True
-            End If
-        Next cell
-
-        If matchFound Then
-            destRow = destRow + 1 ' Add blank row between file results
-        End If
-
-        wbCSV.Close False
-        fileName = Dir
-    Loop
-
-    Application.ScreenUpdating = True
-    MsgBox "CSV search complete!", vbInformation
-End Sub
+Latest Headcount =
+CALCULATE(
+    MAX(YourTable[Headcount]),
+    FILTER(
+        YourTable,
+        YourTable[Date] = MAX(YourTable[Date])
+    )
+)
