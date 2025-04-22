@@ -1,8 +1,8 @@
 Latest Headcount =
-CALCULATE(
-    MAX(YourTable[Headcount]),
-    FILTER(
-        YourTable,
-        YourTable[Date] = MAX(YourTable[Date])
+VAR LatestDate =
+    MAX('STA Cost Center'[Date])
+RETURN
+    CALCULATE(
+        MAX('STA Cost Center'[Headcount]),
+        'STA Cost Center'[Date] = LatestDate
     )
-)
