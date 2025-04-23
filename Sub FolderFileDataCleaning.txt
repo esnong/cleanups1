@@ -1,14 +1,18 @@
-Latest Headcount =
+Latest Headcount per Cost Center =
 CALCULATE(
     MAX('STA Cost Center'[Headcount]),
     FILTER(
         'STA Cost Center',
-        NOT(ISBLANK('STA Cost Center'[Headcount]))
-            && 'STA Cost Center'[Date] = 
-                CALCULATE(
-                    MAX('STA Cost Center'[Date]),
-                    FILTER('STA Cost Center', NOT(ISBLANK('STA Cost Center'[Headcount])))
+        NOT(ISBLANK('STA Cost Center'[Headcount])) &&
+        'STA Cost Center'[Date] =
+            CALCULATE(
+                MAX('STA Cost Center'[Date]),
+                FILTER(
+                    'STA Cost Center',
+                    NOT(ISBLANK('STA Cost Center'[Headcount])) &&
+                    'STA Cost Center'[Cost Center] = EARLIER('STA Cost Center'[Cost Center])
                 )
+            ) &&
+        'STA Cost Center'[Cost Center] = EARLIER('STA Cost Center'[Cost Center])
     )
 )
-
