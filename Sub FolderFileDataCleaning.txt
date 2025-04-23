@@ -1,8 +1,14 @@
 Latest Headcount =
 CALCULATE(
-    SELECTEDVALUE('STA Cost Center'[Headcount]),
+    MAX('STA Cost Center'[Headcount]),
     FILTER(
         'STA Cost Center',
-        'STA Cost Center'[Date] = MAX('STA Cost Center'[Date])
+        NOT(ISBLANK('STA Cost Center'[Headcount]))
+            && 'STA Cost Center'[Date] = 
+                CALCULATE(
+                    MAX('STA Cost Center'[Date]),
+                    FILTER('STA Cost Center', NOT(ISBLANK('STA Cost Center'[Headcount])))
+                )
     )
 )
+
