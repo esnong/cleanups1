@@ -1,18 +1,22 @@
 Latest Headcount per Cost Center =
+VAR SelectedCostCenter = SELECTEDVALUE('STA Cost Center'[Cost Center])
+VAR LatestDatePerCostCenter =
+    CALCULATE(
+        MAX('STA Cost Center'[Date]),
+        FILTER(
+            'STA Cost Center',
+            'STA Cost Center'[Cost Center] = SelectedCostCenter &&
+            NOT(ISBLANK('STA Cost Center'[Headcount]))
+        )
+    )
+
+RETURN
 CALCULATE(
     MAX('STA Cost Center'[Headcount]),
     FILTER(
         'STA Cost Center',
-        NOT(ISBLANK('STA Cost Center'[Headcount])) &&
-        'STA Cost Center'[Date] =
-            CALCULATE(
-                MAX('STA Cost Center'[Date]),
-                FILTER(
-                    'STA Cost Center',
-                    NOT(ISBLANK('STA Cost Center'[Headcount])) &&
-                    'STA Cost Center'[Cost Center] = EARLIER('STA Cost Center'[Cost Center])
-                )
-            ) &&
-        'STA Cost Center'[Cost Center] = EARLIER('STA Cost Center'[Cost Center])
+        'STA Cost Center'[Cost Center] = SelectedCostCenter &&
+        'STA Cost Center'[Date] = LatestDatePerCostCenter &&
+        NOT(ISBLANK('STA Cost Center'[Headcount]))
     )
 )
