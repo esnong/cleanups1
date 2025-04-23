@@ -1,57 +1,8 @@
-Sub OpenAndSortHistoryDataCSV()
-    Dim folderPath As String
-    Dim fileName As String
-    Dim filePath As String
-    Dim fDialog As FileDialog
-    Dim ws As Worksheet
-    Dim lastRow As Long
-    Dim lastCol As Long
-
-    ' Step 1: Prompt user to select folder
-    Set fDialog = Application.FileDialog(msoFileDialogFolderPicker)
-    With fDialog
-        .Title = "Select Folder Containing HistoryData CSV"
-        If .Show <> -1 Then Exit Sub ' Cancelled
-        folderPath = .SelectedItems(1)
-    End With
-
-    If Right(folderPath, 1) <> "\" Then folderPath = folderPath & "\"
-
-    ' Step 2: Search for CSV with "HistoryData" in name
-    fileName = Dir(folderPath & "*HistoryData*.csv")
-    If fileName = "" Then
-        MsgBox "No file with 'HistoryData' in the name was found in that folder.", vbExclamation
-        Exit Sub
-    End If
-
-    filePath = folderPath & fileName
-
-    ' Step 3: Open the file
-    Workbooks.Open filePath
-    Set ws = ActiveSheet
-
-    ' Step 4: Find last row and column
-    lastRow = ws.Cells(ws.Rows.Count, "A").End(xlUp).Row
-    lastCol = ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column
-
-    ' Step 5: Sort first by Column B, then Column A
-    With ws.Sort
-        .SortFields.Clear
-        .SortFields.Add Key:=ws.Range("B2:B" & lastRow), Order:=xlAscending
-        .SetRange ws.Range(ws.Cells(2, 1), ws.Cells(lastRow, lastCol))
-        .Header = xlNo
-        .MatchCase = False
-        .Orientation = xlTopToBottom
-        .Apply
-
-        .SortFields.Clear
-        .SortFields.Add Key:=ws.Range("A2:A" & lastRow), Order:=xlAscending
-        .SetRange ws.Range(ws.Cells(2, 1), ws.Cells(lastRow, lastCol))
-        .Header = xlNo
-        .MatchCase = False
-        .Orientation = xlTopToBottom
-        .Apply
-    End With
-
-    MsgBox "File '" & fileName & "' opened and sorted successfully!", vbInformation
-End Sub
+Latest Headcount =
+CALCULATE(
+    SELECTEDVALUE('STA Cost Center'[Headcount]),
+    FILTER(
+        'STA Cost Center',
+        'STA Cost Center'[Date] = MAX('STA Cost Center'[Date])
+    )
+)
