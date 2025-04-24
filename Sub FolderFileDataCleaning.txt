@@ -1,29 +1,26 @@
 Latest Headcount Total = 
-VAR LatestYearMonth =
-    CALCULATETABLE(
-        TOPN(
-            1,
-            ADDCOLUMNS(
-                SUMMARIZE('STA Cost Center', 
-                    "Year", YEAR('STA Cost Center'[Date]), 
-                    "Month", MONTH('STA Cost Center'[Date])
-                ),
-                "YearMonthNumber", [Year] * 100 + [Month]
-            ),
-            [YearMonthNumber], DESC
+VAR SummaryTable =
+    ADDCOLUMNS(
+        SUMMARIZE(
+            'STA Cost Center',
+            "Year", YEAR('STA Cost Center'[Date]),
+            "Month", MONTH('STA Cost Center'[Date])
         ),
-        ALL('STA Cost Center')
+        "YearMonthNumber", [Year] * 100 + [Month]
     )
 
-VAR SelectedYear = SELECTCOLUMNS(LatestYearMonth, "Year", [Year])
-VAR SelectedMonth = SELECTCOLUMNS(LatestYearMonth, "Month", [Month])
+VAR LatestPeriod =
+    TOPN(1, SummaryTable, [YearMonthNumber], DESC)
+
+VAR LatestYear = MAXX(LatestPeriod, [Year])
+VAR LatestMonth = MAXX(LatestPeriod, [Month])
 
 RETURN
     CALCULATE(
         SUM('STA Cost Center'[Headcount]),
         FILTER(
             'STA Cost Center',
-            YEAR('STA Cost Center'[Date]) = SelectedYear &&
-            MONTH('STA Cost Center'[Date]) = SelectedMonth
+            YEAR('STA Cost Center'[Date]) = LatestYear &&
+            MONTH('STA Cost Center'[Date]) = LatestMonth
         )
     )
