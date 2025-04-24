@@ -1,22 +1,24 @@
-Latest Headcount per Cost Center =
-VAR SelectedCostCenter = SELECTEDVALUE('STA Cost Center'[Cost Center])
-VAR LatestDatePerCostCenter =
-    CALCULATE(
-        MAX('STA Cost Center'[Date]),
-        FILTER(
+Latest Headcount Total = 
+VAR LatestYearMonth =
+    CALCULATETABLE (
+        TOPN (
+            1,
+            SUMMARIZE (
+                'STA Cost Center',
+                YEAR('STA Cost Center'[Date]),
+                MONTH('STA Cost Center'[Date])
+            ),
+            YEAR('STA Cost Center'[Date]) * 100 + MONTH('STA Cost Center'[Date]),
+            DESC
+        ),
+        ALL('STA Cost Center')
+    )
+RETURN
+    CALCULATE (
+        SUM('STA Cost Center'[Headcount]),
+        FILTER (
             'STA Cost Center',
-            'STA Cost Center'[Cost Center] = SelectedCostCenter &&
-            NOT(ISBLANK('STA Cost Center'[Headcount]))
+            YEAR('STA Cost Center'[Date]) = SELECTCOLUMNS(LatestYearMonth, "Year", YEAR('STA Cost Center'[Date])) &&
+            MONTH('STA Cost Center'[Date]) = SELECTCOLUMNS(LatestYearMonth, "Month", MONTH('STA Cost Center'[Date]))
         )
     )
-
-RETURN
-CALCULATE(
-    MAX('STA Cost Center'[Headcount]),
-    FILTER(
-        'STA Cost Center',
-        'STA Cost Center'[Cost Center] = SelectedCostCenter &&
-        'STA Cost Center'[Date] = LatestDatePerCostCenter &&
-        NOT(ISBLANK('STA Cost Center'[Headcount]))
-    )
-)
