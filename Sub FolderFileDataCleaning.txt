@@ -1,19 +1,21 @@
 Total Headcount Latest Month =
-VAR LatestYearMonth =
-    CALCULATETABLE(
-        TOPN(1,
-            SUMMARIZE(
-                'STA Cost Center',
-                YEAR('STA Cost Center'[Date]),
-                MONTH('STA Cost Center'[Date])
-            ),
-            YEAR('STA Cost Center'[Date]) * 100 + MONTH('STA Cost Center'[Date]),
-            DESC
-        ),
-        ALL('STA Cost Center')
+VAR YearMonthTable =
+    ADDCOLUMNS(
+        SUMMARIZE('STA Cost Center', 'STA Cost Center'[Date]),
+        "Year", YEAR('STA Cost Center'[Date]),
+        "Month", MONTH('STA Cost Center'[Date])
     )
-VAR LatestYear = MAXX(LatestYearMonth, YEAR('STA Cost Center'[Date]))
-VAR LatestMonth = MAXX(LatestYearMonth, MONTH('STA Cost Center'[Date]))
+
+VAR LatestYearMonth =
+    TOPN(
+        1,
+        YearMonthTable,
+        [Year] * 100 + [Month],
+        DESC
+    )
+
+VAR LatestYear = MAXX(LatestYearMonth, [Year])
+VAR LatestMonth = MAXX(LatestYearMonth, [Month])
 
 RETURN
 CALCULATE(
