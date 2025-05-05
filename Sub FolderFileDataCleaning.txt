@@ -75,12 +75,12 @@ Sub CreateManpowerUpdate()
 
     ' Loop through date columns
     For Each i In monthCols
-        dateLabel = Format(wsSTA.Cells(3, i).Value, "mmm-yy")
-        lastRow = wsSTA.Cells(wsSTA.Rows.Count, 2).End(xlUp).Row
-        
         On Error Resume Next
-        claimYear = Year(DateValue("1-" & dateLabel))
+        dateLabel = Format(CDate(wsSTA.Cells(3, i).Value), "mmm-yy")
+        claimYear = Year(CDate(wsSTA.Cells(3, i).Value))
         On Error GoTo 0
+
+        lastRow = wsSTA.Cells(wsSTA.Rows.Count, 2).End(xlUp).Row
         
         For Each cell In wsSTA.Range(wsSTA.Cells(4, i), wsSTA.Cells(lastRow, i))
             If UCase(Trim(cell.Value)) = "Y" Then
@@ -111,7 +111,7 @@ Sub CreateManpowerUpdate()
                     .Cells(destRow, 2).Value = groupName        ' Group
                     .Cells(destRow, 3).Value = localForeigner   ' Local / Foreigner
                     .Cells(destRow, 4).Value = claimNum         ' Claim Number
-                    .Cells(destRow, 5).Value = dateLabel        ' Updated as of
+                    .Cells(destRow, 5).Value = "'" & dateLabel  ' Updated as of (text like "Dec-23")
                     .Cells(destRow, 6).Value = claimYear        ' Claim Year
                     .Cells(destRow, 7).Value = staffName        ' Name of Personnel
                     .Cells(destRow, 8).Value = levelSupport     ' Level of Support
@@ -121,6 +121,6 @@ Sub CreateManpowerUpdate()
         Next cell
     Next i
 
-    MsgBox "Manpower Update (For PowerBI) created successfully with proper date format.", vbInformation
+    MsgBox "Manpower Update (For PowerBI) created successfully with proper date labels.", vbInformation
 
 End Sub
