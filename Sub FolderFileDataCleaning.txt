@@ -103,7 +103,13 @@ Sub CreateManpowerUpdate()
                 localForeigner = wsSTA.Cells(cell.Row, 5).Value   ' Column E → Local / Foreigner
                 claimNum = ""                                     ' Leave Claim Number empty
                 staffName = wsSTA.Cells(cell.Row, 4).Value        ' Column D → Name of Personnel
-                levelSupport = ""                                 ' Leave Level of Support empty
+
+                ' Apply support level rule
+                If Trim(UCase(localForeigner)) = "LOCAL" Then
+                    levelSupport = "60%"
+                Else
+                    levelSupport = "30%"
+                End If
 
                 ' Write to new sheet
                 With wsUpdate
@@ -121,6 +127,6 @@ Sub CreateManpowerUpdate()
         Next cell
     Next i
 
-    MsgBox "Manpower Update (For PowerBI) created successfully with proper date labels.", vbInformation
+    MsgBox "Manpower Update (For PowerBI) created successfully with Level of Support logic.", vbInformation
 
 End Sub
