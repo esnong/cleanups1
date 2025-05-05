@@ -127,6 +127,16 @@ Sub CreateManpowerUpdate()
         Next cell
     Next i
 
-    MsgBox "Manpower Update (For PowerBI) created successfully with Level of Support logic.", vbInformation
+    ' Convert the range into a Table named "EDB Manpower"
+    Dim tblRange As Range
+    Dim tbl As ListObject
+    Set tblRange = wsUpdate.Range("A1").CurrentRegion
+    On Error Resume Next
+    wsUpdate.ListObjects("EDB Manpower").Delete ' Remove if already exists
+    On Error GoTo 0
+    Set tbl = wsUpdate.ListObjects.Add(xlSrcRange, tblRange, , xlYes)
+    tbl.Name = "EDB Manpower"
+
+    MsgBox "Manpower Update (For PowerBI) created successfully with table 'EDB Manpower'.", vbInformation
 
 End Sub
