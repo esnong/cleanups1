@@ -11,7 +11,7 @@ Sub CreateManpowerUpdate()
     Dim i As Variant
     Dim orgName As String, mappedOrg As String, groupName As String, category As String
     Dim role As String, staffName As String
-    Dim dateLabel As String
+    Dim dateLabel As String, claimYear As String
     Dim exists As Boolean
 
     wsName = "Manpower Update (For PowerBI)"
@@ -77,6 +77,11 @@ Sub CreateManpowerUpdate()
         dateLabel = wsSTA.Cells(3, i).Text
         lastRow = wsSTA.Cells(wsSTA.Rows.Count, 2).End(xlUp).Row
         
+        ' Attempt to extract year
+        On Error Resume Next
+        claimYear = Year(DateValue("1-" & dateLabel))
+        On Error GoTo 0
+        
         For Each cell In wsSTA.Range(wsSTA.Cells(4, i), wsSTA.Cells(lastRow, i))
             If UCase(Trim(cell.Value)) = "Y" Then
                 orgName = wsSTA.Cells(cell.Row, 2).Value ' Column B
@@ -101,14 +106,14 @@ Sub CreateManpowerUpdate()
 
                 ' Fill data into update sheet
                 With wsUpdate
-                    .Cells(destRow, 1).Value = orgName                     ' Entity
-                    .Cells(destRow, 2).Value = mappedOrg                  ' Group
-                    .Cells(destRow, 3).Value = groupName                  ' Local / Foreigner (Group)
-                    .Cells(destRow, 4).Value = ""                         ' Claim Number (left blank)
-                    .Cells(destRow, 5).Value = dateLabel                  ' Updated as of
-                    .Cells(destRow, 6).Value = category                   ' Claim Year
-                    .Cells(destRow, 7).Value = staffName                  ' Name of Personnel
-                    .Cells(destRow, 8).Value = role                       ' Level of Support
+                    .Cells(destRow, 1).Value = mappedOrg      ' A: Entity
+                    .Cells(destRow, 2).Value = groupName      ' B: Group
+                    .Cells(destRow, 3).Value = category       ' C: Local / Foreigner
+                    .Cells(destRow, 4).Value = ""             ' D: Claim Number
+                    .Cells(destRow, 5).Value = dateLabel      ' E: Updated as of
+                    .Cells(destRow, 6).Value = claimYear      ' F: Claim Year
+                    .Cells(destRow, 7).Value = staffName      ' G: Name of Personnel
+                    .Cells(destRow, 8).Value = role           ' H: Level of Support
                 End With
                 destRow = destRow + 1
             End If
