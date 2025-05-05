@@ -76,7 +76,7 @@ Sub CreateManpowerUpdate()
     ' Loop through date columns
     For Each i In monthCols
         On Error Resume Next
-        dateLabel = Format(CDate(wsSTA.Cells(3, i).Value), "mmm-yy")
+        dateLabel = "'" & Format(CDate(wsSTA.Cells(3, i).Value), "mmm-yy")  ' Ensuring text format for "Updated as of"
         claimYear = Year(CDate(wsSTA.Cells(3, i).Value))
         On Error GoTo 0
 
@@ -117,7 +117,7 @@ Sub CreateManpowerUpdate()
                     .Cells(destRow, 2).Value = groupName        ' Group
                     .Cells(destRow, 3).Value = localForeigner   ' Local / Foreigner
                     .Cells(destRow, 4).Value = claimNum         ' Claim Number
-                    .Cells(destRow, 5).Value = "'" & dateLabel  ' Updated as of (text like "Dec-23")
+                    .Cells(destRow, 5).Value = dateLabel        ' Updated as of (text like "Dec-23")
                     .Cells(destRow, 6).Value = claimYear        ' Claim Year
                     .Cells(destRow, 7).Value = staffName        ' Name of Personnel
                     .Cells(destRow, 8).Value = levelSupport     ' Level of Support
