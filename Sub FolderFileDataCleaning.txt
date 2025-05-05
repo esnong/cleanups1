@@ -53,11 +53,11 @@ Sub CreateManpowerUpdate()
     With wsUpdate
         .Range("A1").Value = "Entity"
         .Range("B1").Value = "Group"
-        .Range("C1").Value = "Local / Foreigner"
-        .Range("D1").Value = "Claim Number"
-        .Range("E1").Value = "Updated as of"
-        .Range("F1").Value = "Claim Year"
-        .Range("G1").Value = "Name of Personnel"
+        .Range("C1").Value = "Claim Number"
+        .Range("D1").Value = "Updated as of"
+        .Range("E1").Value = "Claim Year"
+        .Range("F1").Value = "Name of Personnel"
+        .Range("G1").Value = "Local / Foreigner"
         .Range("H1").Value = "Level of Support"
     End With
 
@@ -104,15 +104,15 @@ Sub CreateManpowerUpdate()
                 staffName = wsSTA.Cells(cell.Row, 5).Value ' Column E
                 role = wsSTA.Cells(cell.Row, 3).Value ' Column C
 
-                ' Fill data into update sheet
+                ' Fill data into update sheet (adjusted columns)
                 With wsUpdate
                     .Cells(destRow, 1).Value = mappedOrg      ' A: Entity
                     .Cells(destRow, 2).Value = groupName      ' B: Group
-                    .Cells(destRow, 3).Value = category       ' C: Local / Foreigner
-                    .Cells(destRow, 4).Value = ""             ' D: Claim Number
-                    .Cells(destRow, 5).Value = dateLabel      ' E: Updated as of
-                    .Cells(destRow, 6).Value = claimYear      ' F: Claim Year
-                    .Cells(destRow, 7).Value = staffName      ' G: Name of Personnel
+                    .Cells(destRow, 3).Value = staffName      ' C: Claim Number (from STA Column E)
+                    .Cells(destRow, 4).Value = dateLabel      ' D: Updated as of
+                    .Cells(destRow, 5).Value = claimYear      ' E: Claim Year
+                    .Cells(destRow, 6).Value = staffName      ' F: Name of Personnel
+                    .Cells(destRow, 7).Value = category       ' G: Local / Foreigner
                     .Cells(destRow, 8).Value = role           ' H: Level of Support
                 End With
                 destRow = destRow + 1
