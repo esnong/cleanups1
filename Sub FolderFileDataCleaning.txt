@@ -75,7 +75,7 @@ Sub CreateManpowerUpdate()
 
     ' Loop through date columns
     For Each i In monthCols
-        dateLabel = wsSTA.Cells(3, i).Text
+        dateLabel = Format(wsSTA.Cells(3, i).Value, "mmm-yy")
         lastRow = wsSTA.Cells(wsSTA.Rows.Count, 2).End(xlUp).Row
         
         On Error Resume Next
@@ -121,6 +121,6 @@ Sub CreateManpowerUpdate()
         Next cell
     Next i
 
-    MsgBox "Manpower Update (For PowerBI) created successfully.", vbInformation
+    MsgBox "Manpower Update (For PowerBI) created successfully with proper date format.", vbInformation
 
 End Sub
