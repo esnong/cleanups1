@@ -12,7 +12,7 @@ Sub CreateManpowerUpdate()
     Dim orgName As String, mappedOrg As String, groupName As String
     Dim localForeigner As String, claimNum As String
     Dim staffName As String, levelSupport As String
-    Dim dateLabel As String, claimYear As String
+    Dim dateLabel As Date, claimYear As String
     Dim exists As Boolean
 
     wsName = "Manpower Update (For PowerBI)"
@@ -76,8 +76,8 @@ Sub CreateManpowerUpdate()
     ' Loop through date columns
     For Each i In monthCols
         On Error Resume Next
-        dateLabel = "'" & Format(CDate(wsSTA.Cells(3, i).Value), "mmm-yy")  ' Ensuring text format for "Updated as of"
-        claimYear = Year(CDate(wsSTA.Cells(3, i).Value))
+        dateLabel = CDate(wsSTA.Cells(3, i).Value)  ' Ensure it is treated as a date
+        claimYear = Year(dateLabel)                 ' Extract claim year from date
         On Error GoTo 0
 
         lastRow = wsSTA.Cells(wsSTA.Rows.Count, 2).End(xlUp).Row
@@ -117,11 +117,15 @@ Sub CreateManpowerUpdate()
                     .Cells(destRow, 2).Value = groupName        ' Group
                     .Cells(destRow, 3).Value = localForeigner   ' Local / Foreigner
                     .Cells(destRow, 4).Value = claimNum         ' Claim Number
-                    .Cells(destRow, 5).Value = dateLabel        ' Updated as of (text like "Dec-23")
+                    .Cells(destRow, 5).Value = dateLabel        ' Updated as of (Date value)
                     .Cells(destRow, 6).Value = claimYear        ' Claim Year
                     .Cells(destRow, 7).Value = staffName        ' Name of Personnel
                     .Cells(destRow, 8).Value = levelSupport     ' Level of Support
                 End With
+
+                ' Set the format to MM/DD/YY for the "Updated as of" column (E)
+                wsUpdate.Cells(destRow, 5).NumberFormat = "mm/dd/yy"
+                
                 destRow = destRow + 1
             End If
         Next cell
