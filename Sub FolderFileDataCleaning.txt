@@ -2,11 +2,13 @@ Sub CreateManpowerUpdate()
 
     Dim wsSTA As Worksheet, wsUpdate As Worksheet
     Dim wsName As String
-    Dim lastCol As Long, i As Long, lastRow As Long, destRow As Long
+    Dim lastCol As Long, lastRow As Long, destRow As Long
+    Dim colIndex As Long
     Dim monthCols As Collection
     Dim header As String
     Dim dictMap As Object
     Dim cell As Range
+    Dim i As Variant
     Dim orgName As String, mappedOrg As String, groupName As String, category As String
     Dim role As String, staffName As String
     Dim dateLabel As String
@@ -33,12 +35,12 @@ Sub CreateManpowerUpdate()
     Set monthCols = New Collection
     lastCol = wsSTA.Cells(3, wsSTA.Columns.Count).End(xlToLeft).Column
     
-    For i = 6 To lastCol ' Assuming date columns start at column F
-        header = wsSTA.Cells(3, i).Text
+    For colIndex = 6 To lastCol ' Assuming date columns start at column F
+        header = wsSTA.Cells(3, colIndex).Text
         If UCase(Left(header, 3)) = "DEC" Then
-            monthCols.Add i
+            monthCols.Add colIndex
         End If
-    Next i
+    Next colIndex
 
     ' Ensure the last column is included
     exists = False
@@ -104,8 +106,8 @@ Sub CreateManpowerUpdate()
                     .Cells(destRow, 3).Value = groupName                  ' Local / Foreigner (Group)
                     .Cells(destRow, 4).Value = ""                         ' Claim Number (left blank)
                     .Cells(destRow, 5).Value = dateLabel                  ' Updated as of
-                    .Cells(destRow, 6).Value = category                   ' Claim Year (Category)
-                    .Cells(destRow, 7).Value = staffName                  ' Name
+                    .Cells(destRow, 6).Value = category                   ' Claim Year
+                    .Cells(destRow, 7).Value = staffName                  ' Name of Personnel
                     .Cells(destRow, 8).Value = role                       ' Level of Support
                 End With
                 destRow = destRow + 1
