@@ -60,6 +60,7 @@ Sub CreateManpowerUpdate()
         .Range("F1").Value = "Claim Year"
         .Range("G1").Value = "Name of Personnel"
         .Range("H1").Value = "Level of Support"
+        .Range("I1").Value = "Entity Mapping" ' New column
     End With
 
     destRow = 2
@@ -117,15 +118,25 @@ Sub CreateManpowerUpdate()
                     .Cells(destRow, 2).Value = groupName        ' Group
                     .Cells(destRow, 3).Value = localForeigner   ' Local / Foreigner
                     .Cells(destRow, 4).Value = claimNum         ' Claim Number
-                    .Cells(destRow, 5).Value = dateLabel        ' Updated as of (Date value)
+                    .Cells(destRow, 5).Value = dateLabel        ' Updated as of
                     .Cells(destRow, 6).Value = claimYear        ' Claim Year
                     .Cells(destRow, 7).Value = staffName        ' Name of Personnel
                     .Cells(destRow, 8).Value = levelSupport     ' Level of Support
+
+                    ' Column I - Entity Mapping
+                    Select Case mappedOrg
+                        Case "STA AMO"
+                            .Cells(destRow, 9).Value = "527100 (STA AMO)"
+                        Case "STA ASE"
+                            .Cells(destRow, 9).Value = "524023 (STA ASE)"
+                        Case Else
+                            .Cells(destRow, 9).Value = ""
+                    End Select
+
+                    ' Format date column
+                    .Cells(destRow, 5).NumberFormat = "mm/dd/yy"
                 End With
 
-                ' Set the format to MM/DD/YY for the "Updated as of" column (E)
-                wsUpdate.Cells(destRow, 5).NumberFormat = "mm/dd/yy"
-                
                 destRow = destRow + 1
             End If
         Next cell
