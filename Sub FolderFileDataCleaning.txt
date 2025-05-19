@@ -1,12 +1,14 @@
-ExchangeRates = 
-DATATABLE(
-    "Year", INTEGER,
-    "Currency", STRING,
-    "RateToUSD", DOUBLE,
-    {
-        {2022, "USD", 1},
-        {2022, "SGD", 1.35},
-        {2023, "USD", 1},
-        {2023, "SGD", 1.30}
-    }
+Amount (Converted) :=
+VAR SelectedCurrency = SELECTEDVALUE('CurrencySelection'[Currency], "USD")
+RETURN
+SUMX (
+    Sales,
+    VAR ThisYear = Sales[Year]
+    VAR Rate = 
+        CALCULATE (
+            MAX('General - Ex Rate(USD > SGD)'[RateToUSD]),
+            'General - Ex Rate(USD > SGD)'[Currency] = SelectedCurrency,
+            'General - Ex Rate(USD > SGD)'[Year] = ThisYear
+        )
+    RETURN Sales[AmountUSD] * Rate
 )
