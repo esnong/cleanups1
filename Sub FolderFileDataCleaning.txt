@@ -2,13 +2,14 @@ Amount (Converted) :=
 VAR SelectedCurrency = SELECTEDVALUE('CurrencySelection'[Currency], "USD")
 RETURN
 SUMX (
-    Sales,
-    VAR ThisYear = Sales[Year]
-    VAR Rate = 
+    'EDB - Expenses',
+    VAR ThisYear =
+        RELATED('General - Years'[Year])
+    VAR Rate =
         CALCULATE (
             MAX('General - Ex Rate(USD > SGD)'[RateToUSD]),
             'General - Ex Rate(USD > SGD)'[Currency] = SelectedCurrency,
             'General - Ex Rate(USD > SGD)'[Year] = ThisYear
         )
-    RETURN Sales[AmountUSD] * Rate
+    RETURN 'EDB - Expenses'[AmountUSD] * Rate
 )
