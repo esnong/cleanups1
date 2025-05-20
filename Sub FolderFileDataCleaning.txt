@@ -1,15 +1,20 @@
 Amount (Converted) :=
-VAR SelectedCurrency = SELECTEDVALUE('CurrencySelection'[Currency], "USD")
+VAR SelectedCurrency = SELECTEDVALUE('CurrencySelection'[Currency], "SGD")
 RETURN
 SUMX (
     'EDB - Expenses',
-    VAR ThisYear =
-        RELATED('General - Years'[Year])
-    VAR Rate =
+    VAR ThisYear = RELATED('General - Years'[Year])
+    VAR RateToSGD =
         CALCULATE (
-            MAX('General - Ex Rate(USD > SGD)'[RateToUSD]),
+            MAX('General - Ex Rate(USD > SGD)'[RateToSGD]),
             'General - Ex Rate(USD > SGD)'[Currency] = SelectedCurrency,
             'General - Ex Rate(USD > SGD)'[Year] = ThisYear
         )
-    RETURN 'EDB - Expenses'[AmountUSD] * Rate
+    VAR ConversionRate =
+        IF(
+            SelectedCurrency = "SGD",
+            1,
+            1 / RateToSGD  -- Converts SGD to USD
+        )
+    RETURN 'EDB - Expenses'[AmountSGD] * ConversionRate
 )
