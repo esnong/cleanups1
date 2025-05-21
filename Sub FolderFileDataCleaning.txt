@@ -1,12 +1,74 @@
-AmountUSD_to_SGD :=
-SUMX (
-    'EDB - Expenses',
-    VAR ThisYear = RELATED('General - Years'[Year])
-    VAR Rate =
-        CALCULATE (
-            MAX('General - Ex Rate(USD > SGD)'[RateToSGD]),
-            'General - Ex Rate(USD > SGD)'[Currency] = "USD",
-            'General - Ex Rate(USD > SGD)'[Year] = ThisYear
-        )
-    RETURN 'EDB - Expenses'[AmountUSD] * Rate
-)
+Sub GeneratePowerBISheet()
+
+    Dim wsSource As Worksheet
+    Dim wsTarget As Worksheet
+    Dim dateCell As Range
+    Dim glDesc As String
+    Dim projectedCost As Variant
+    Dim lastCol As Long
+    Dim targetRow As Long
+    Dim i As Long, col As Long
+    Dim dateVal As Variant
+    Dim yearVal As String
+    Dim costCenter As String
+    
+    ' Set source worksheet (the active one)
+    Set wsSource = ActiveSheet
+    
+    ' Delete existing "For Power BI" sheet if it exists
+    Application.DisplayAlerts = False
+    On Error Resume Next
+    Worksheets("For Power BI").Delete
+    On Error GoTo 0
+    Application.DisplayAlerts = True
+    
+    ' Add new "For Power BI" worksheet
+    Set wsTarget = Worksheets.Add
+    wsTarget.Name = "For Power BI"
+    
+    ' Add headers to new sheet
+    With wsTarget
+        .Cells(1, 1).Value = "Cost Elements"
+        .Cells(1, 2).Value = "Projected Costs"
+        .Cells(1, 3).Value = "Date"
+        .Cells(1, 4).Value = "Year"
+        .Cells(1, 5).Value = "Cost Center"
+    End With
+    
+    targetRow = 2 ' Start writing data from row 2 in target sheet
+    
+    ' Find the last column with data in row 7 (Date headers)
+    lastCol = wsSource.Cells(7, wsSource.Columns.Count).End(xlToLeft).Column
+    
+    ' Loop through each column starting from column 5 (assumption: data starts from column E)
+    For col = 5 To lastCol
+        dateVal = wsSource.Cells(7, col).Value
+        
+        ' Skip empty or non-date values
+        If IsDate(dateVal) Then
+            yearVal = Year(dateVal)
+            costCenter = "Opex " & yearVal
+            
+            ' Loop through rows 8 to 60
+            For i = 8 To 60
+                projectedCost = wsSource.Cells(i, col).Value
+                glDesc = wsSource.Cells(i, 4).Value ' Column D is 4
+                
+                ' Only copy if there's a value (optional: could also filter zeroes)
+                If Not IsEmpty(projectedCost) Then
+                    With wsTarget
+                        .Cells(targetRow, 1).Value = glDesc                  ' Cost Elements
+                        .Cells(targetRow, 2).Value = projectedCost          ' Projected Costs
+                        .Cells(targetRow, 3).Value = dateVal                ' Date
+                        .Cells(targetRow, 4).Value = yearVal                ' Year
+                        .Cells(targetRow, 5).Value = costCenter             ' Cost Center
+                    End With
+                    targetRow = targetRow + 1
+                End If
+            Next i
+        End If
+    Next col
+    
+    MsgBox "Data transformation complete! Check the 'For Power BI' sheet.", vbInformation
+
+End Sub
