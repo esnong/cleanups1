@@ -4,14 +4,13 @@ Sub ExtractAllCAPEXBlocksForPowerBI()
     Dim sheetName As String
     Dim lastRow As Long
     Dim currentRow As Long
-    Dim readRow As Long
     Dim destRow As Long
     Dim capexYear As String
-    Dim emptyRowCount As Integer
     Dim groupValue As String
     Dim assetDescription As String
     Dim amountValue As Variant
     Dim regex As Object
+    Dim emptyRowCount As Integer
 
     ' Set source sheet as the active sheet at the beginning
     Set wsSource = ActiveSheet
@@ -19,7 +18,6 @@ Sub ExtractAllCAPEXBlocksForPowerBI()
 
     ' Create regular expression to detect "<YEAR> CAPEX"
     Set regex = CreateObject("VBScript.RegExp")
-    regex.Pattern = "^\d{4} CAPEX$"
     regex.IgnoreCase = True
     regex.Global = False
 
@@ -53,24 +51,26 @@ Sub ExtractAllCAPEXBlocksForPowerBI()
         Dim cellValue As String
         cellValue = Trim(wsSource.Cells(currentRow, "B").Value)
 
+        ' Check if the cell matches "<YEAR> CAPEX"
         If regex.Test(cellValue) Then
-            ' Found "<YEAR> CAPEX"
+            ' Extract the year from the header
             capexYear = Split(cellValue)(0)
-            readRow = currentRow + 1
+            currentRow = currentRow + 1
             emptyRowCount = 0
 
             ' Process rows under this CAPEX header
-            Do While readRow <= lastRow And emptyRowCount < 5
-                groupValue = Trim(wsSource.Cells(readRow, "B").Value)
+            Do While currentRow <= lastRow And emptyRowCount < 5
+                groupValue = Trim(wsSource.Cells(currentRow, "B").Value)
 
                 If groupValue = "" Then
                     emptyRowCount = emptyRowCount + 1
                 Else
                     emptyRowCount = 0
 
-                    assetDescription = wsSource.Cells(readRow, "C").Value
-                    amountValue = wsSource.Cells(readRow, "S").Value
+                    assetDescription = wsSource.Cells(currentRow, "C").Value
+                    amountValue = wsSource.Cells(currentRow, "S").Value
 
+                    ' Write data to destination sheet
                     With wsDest
                         .Cells(destRow, 1).Value = groupValue
                         .Cells(destRow, 2).Value = assetDescription
@@ -82,11 +82,8 @@ Sub ExtractAllCAPEXBlocksForPowerBI()
                     destRow = destRow + 1
                 End If
 
-                readRow = readRow + 1
+                currentRow = currentRow + 1
             Loop
-
-            ' Resume scanning after this block
-            currentRow = readRow
         Else
             currentRow = currentRow + 1
         End If
