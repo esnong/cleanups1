@@ -1,41 +1,40 @@
-Sub ExtractCAPEXDataForPowerBI()
+Sub ExtractAllCAPEXBlocksForPowerBI()
     Dim wsSource As Worksheet
     Dim wsDest As Worksheet
+    Dim sheetName As String
     Dim lastRow As Long
-    Dim destRow As Long
     Dim currentRow As Long
-    Dim emptyRowCount As Integer
+    Dim readRow As Long
+    Dim destRow As Long
     Dim capexYear As String
+    Dim emptyRowCount As Integer
     Dim groupValue As String
     Dim assetDescription As String
     Dim amountValue As Variant
     Dim regex As Object
-    Dim sheetName As String
 
-    ' Save source worksheet reference BEFORE doing anything else
+    ' Set source sheet as the active sheet at the beginning
     Set wsSource = ActiveSheet
     sheetName = "For Power BI (AE)"
 
-    ' Set up regular expression to match "YYYY CAPEX"
+    ' Create regular expression to detect "<YEAR> CAPEX"
     Set regex = CreateObject("VBScript.RegExp")
     regex.Pattern = "^\d{4} CAPEX$"
     regex.IgnoreCase = True
     regex.Global = False
 
-    ' Delete the destination sheet if it exists (but NOT the source sheet)
+    ' Delete existing destination sheet if it's not the source sheet
     On Error Resume Next
     Application.DisplayAlerts = False
-    If Not wsSource.Name = sheetName Then
-        Worksheets(sheetName).Delete
-    End If
+    If Not wsSource.Name = sheetName Then Worksheets(sheetName).Delete
     Application.DisplayAlerts = True
     On Error GoTo 0
 
-    ' Create the destination sheet
+    ' Create new destination sheet
     Set wsDest = Worksheets.Add(After:=Worksheets(Worksheets.Count))
     wsDest.Name = sheetName
 
-    ' Set up headers in destination sheet
+    ' Set headers
     With wsDest
         .Cells(1, 1).Value = "Group"
         .Cells(1, 2).Value = "Asset Description"
@@ -43,50 +42,55 @@ Sub ExtractCAPEXDataForPowerBI()
         .Cells(1, 4).Value = "Date"
         .Cells(1, 5).Value = "Year"
     End With
-
     destRow = 2
 
-    ' NOW get last row from original source sheet
+    ' Get last row in column B
     lastRow = wsSource.Cells(wsSource.Rows.Count, "B").End(xlUp).Row
+    currentRow = 1
 
-    ' Loop through column B
-    For currentRow = 1 To lastRow
+    ' Loop through every row in Column B
+    Do While currentRow <= lastRow
         Dim cellValue As String
         cellValue = Trim(wsSource.Cells(currentRow, "B").Value)
 
         If regex.Test(cellValue) Then
-            capexYear = Split(cellValue)(0) ' Get the year from header
-            currentRow = currentRow + 1
+            ' Found "<YEAR> CAPEX"
+            capexYear = Split(cellValue)(0)
+            readRow = currentRow + 1
             emptyRowCount = 0
 
-            Do While currentRow <= lastRow And emptyRowCount < 5
-                groupValue = Trim(wsSource.Cells(currentRow, "B").Value)
+            ' Process rows under this CAPEX header
+            Do While readRow <= lastRow And emptyRowCount < 5
+                groupValue = Trim(wsSource.Cells(readRow, "B").Value)
 
                 If groupValue = "" Then
                     emptyRowCount = emptyRowCount + 1
                 Else
                     emptyRowCount = 0
 
-                    assetDescription = wsSource.Cells(currentRow, "C").Value
-                    amountValue = wsSource.Cells(currentRow, "S").Value
+                    assetDescription = wsSource.Cells(readRow, "C").Value
+                    amountValue = wsSource.Cells(readRow, "S").Value
 
                     With wsDest
                         .Cells(destRow, 1).Value = groupValue
                         .Cells(destRow, 2).Value = assetDescription
                         .Cells(destRow, 3).Value = amountValue
-                        .Cells(destRow, 4).Value = "" ' Date blank
+                        .Cells(destRow, 4).Value = "" ' Date is left blank
                         .Cells(destRow, 5).Value = capexYear
                     End With
 
                     destRow = destRow + 1
                 End If
 
-                currentRow = currentRow + 1
+                readRow = readRow + 1
             Loop
 
-            currentRow = currentRow - 1
+            ' Resume scanning after this block
+            currentRow = readRow
+        Else
+            currentRow = currentRow + 1
         End If
-    Next currentRow
+    Loop
 
-    MsgBox "Data extraction complete to '" & sheetName & "'.", vbInformation
+    MsgBox "Data extraction complete. Output written to '" & sheetName & "'.", vbInformation
 End Sub
