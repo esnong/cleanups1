@@ -1,74 +1,85 @@
-Sub GeneratePowerBISheet()
-
+Sub ExtractCAPEXDataForPowerBI()
     Dim wsSource As Worksheet
-    Dim wsTarget As Worksheet
-    Dim dateCell As Range
-    Dim glDesc As String
-    Dim projectedCost As Variant
-    Dim lastCol As Long
-    Dim targetRow As Long
-    Dim i As Long, col As Long
-    Dim dateVal As Variant
-    Dim yearVal As String
-    Dim costCenter As String
-    
-    ' Set source worksheet (the active one)
-    Set wsSource = ActiveSheet
-    
-    ' Delete existing "For Power BI" sheet if it exists
-    Application.DisplayAlerts = False
-    On Error Resume Next
-    Worksheets("For Power BI").Delete
-    On Error GoTo 0
-    Application.DisplayAlerts = True
-    
-    ' Add new "For Power BI" worksheet
-    Set wsTarget = Worksheets.Add
-    wsTarget.Name = "For Power BI"
-    
-    ' Add headers to new sheet
-    With wsTarget
-        .Cells(1, 1).Value = "Cost Elements"
-        .Cells(1, 2).Value = "Projected Costs"
-        .Cells(1, 3).Value = "Date"
-        .Cells(1, 4).Value = "Year"
-        .Cells(1, 5).Value = "Cost Center"
-    End With
-    
-    targetRow = 2 ' Start writing data from row 2 in target sheet
-    
-    ' Find the last column with data in row 7 (Date headers)
-    lastCol = wsSource.Cells(7, wsSource.Columns.Count).End(xlToLeft).Column
-    
-    ' Loop through each column starting from column 5 (assumption: data starts from column E)
-    For col = 5 To lastCol
-        dateVal = wsSource.Cells(7, col).Value
-        
-        ' Skip empty or non-date values
-        If IsDate(dateVal) Then
-            yearVal = Year(dateVal)
-            costCenter = "Opex " & yearVal
-            
-            ' Loop through rows 8 to 60
-            For i = 8 To 60
-                projectedCost = wsSource.Cells(i, col).Value
-                glDesc = wsSource.Cells(i, 4).Value ' Column D is 4
-                
-                ' Only copy if there's a value (optional: could also filter zeroes)
-                If Not IsEmpty(projectedCost) Then
-                    With wsTarget
-                        .Cells(targetRow, 1).Value = glDesc                  ' Cost Elements
-                        .Cells(targetRow, 2).Value = projectedCost          ' Projected Costs
-                        .Cells(targetRow, 3).Value = dateVal                ' Date
-                        .Cells(targetRow, 4).Value = yearVal                ' Year
-                        .Cells(targetRow, 5).Value = costCenter             ' Cost Center
-                    End With
-                    targetRow = targetRow + 1
-                End If
-            Next i
-        End If
-    Next col
-    
-    MsgBox "Data transformation complete! Check the 'For Power BI' sheet.", vbInformation
+    Dim wsDest As Worksheet
+    Dim cell As Range
+    Dim lastRow As Long
+    Dim destRow As Long
+    Dim capexYear As String
+    Dim emptyRowCount As Integer
+    Dim currentRow As Long
+    Dim headerRow As Long
+    Dim groupValue As String
+    Dim assetDescription As String
+    Dim amountValue As Variant
+    Dim sheetName As String
 
+    sheetName = "For Power BI (AE)"
+
+    ' Set the source sheet (the active sheet)
+    Set wsSource = ActiveSheet
+
+    ' Delete the existing destination sheet if it exists
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    Worksheets(sheetName).Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+
+    ' Create a new destination sheet
+    Set wsDest = Worksheets.Add(After:=Worksheets(Worksheets.Count))
+    wsDest.Name = sheetName
+
+    ' Write headers to the destination sheet
+    With wsDest
+        .Cells(1, 1).Value = "Group"
+        .Cells(1, 2).Value = "Asset Description"
+        .Cells(1, 3).Value = "Amount"
+        .Cells(1, 4).Value = "Date"
+        .Cells(1, 5).Value = "Year"
+    End With
+
+    destRow = 2
+    lastRow = wsSource.Cells(wsSource.Rows.Count, "B").End(xlUp).Row
+
+    ' Loop through column B to find all <YEAR> CAPEX headers
+    For currentRow = 1 To lastRow
+        If Trim(wsSource.Cells(currentRow, "B").Value) Like "*#### CAPEX*" Then
+            ' Extract year from "<YEAR> CAPEX"
+            capexYear = Trim(Split(wsSource.Cells(currentRow, "B").Value)(0))
+            headerRow = currentRow
+            currentRow = currentRow + 1
+            emptyRowCount = 0
+
+            ' Process rows below the CAPEX header
+            Do While currentRow <= lastRow And emptyRowCount < 5
+                groupValue = Trim(wsSource.Cells(currentRow, "B").Value)
+                If groupValue = "" Then
+                    emptyRowCount = emptyRowCount + 1
+                Else
+                    emptyRowCount = 0 ' reset counter if non-empty
+
+                    assetDescription = wsSource.Cells(currentRow, "C").Value
+                    amountValue = wsSource.Cells(currentRow, "S").Value
+
+                    ' Write to destination sheet
+                    With wsDest
+                        .Cells(destRow, 1).Value = groupValue
+                        .Cells(destRow, 2).Value = assetDescription
+                        .Cells(destRow, 3).Value = amountValue
+                        .Cells(destRow, 4).Value = "" ' Date is left blank
+                        .Cells(destRow, 5).Value = capexYear
+                    End With
+
+                    destRow = destRow + 1
+                End If
+
+                currentRow = currentRow + 1
+            Loop
+
+            ' Step back one row because the outer loop will increment it again
+            currentRow = currentRow - 1
+        End If
+    Next currentRow
+
+    MsgBox "Data extraction complete. Output written to '" & sheetName & "'.", vbInformation
 End Sub
