@@ -1,39 +1,39 @@
 Sub ExtractCAPEXDataForPowerBI()
     Dim wsSource As Worksheet
     Dim wsDest As Worksheet
-    Dim cell As Range
+    Dim sheetName As String
     Dim lastRow As Long
     Dim destRow As Long
-    Dim capexYear As String
-    Dim emptyRowCount As Integer
     Dim currentRow As Long
-    Dim headerRow As Long
+    Dim emptyRowCount As Integer
+    Dim capexYear As String
     Dim groupValue As String
     Dim assetDescription As String
     Dim amountValue As Variant
-    Dim sheetName As String
-
     Dim regex As Object
+    Dim sourceSheetName As String
+
+    ' Set up regular expression for "<YEAR> CAPEX"
     Set regex = CreateObject("VBScript.RegExp")
     regex.Pattern = "^\d{4} CAPEX$"
     regex.IgnoreCase = True
     regex.Global = False
 
-    sheetName = "For Power BI (AE)"
-    Set wsSource = ActiveSheet
+    ' Save the name of the active sheet (the source)
+    sourceSheetName = ActiveSheet.Name
+    Set wsSource = Worksheets(sourceSheetName)
 
-    ' Delete existing destination sheet
+    ' Destination sheet setup
+    sheetName = "For Power BI (AE)"
     On Error Resume Next
     Application.DisplayAlerts = False
     Worksheets(sheetName).Delete
     Application.DisplayAlerts = True
     On Error GoTo 0
-
-    ' Create new destination sheet
     Set wsDest = Worksheets.Add(After:=Worksheets(Worksheets.Count))
     wsDest.Name = sheetName
 
-    ' Write headers
+    ' Add headers to destination
     With wsDest
         .Cells(1, 1).Value = "Group"
         .Cells(1, 2).Value = "Asset Description"
@@ -43,21 +43,23 @@ Sub ExtractCAPEXDataForPowerBI()
     End With
 
     destRow = 2
+
+    ' Use fixed reference to source sheet
     lastRow = wsSource.Cells(wsSource.Rows.Count, "B").End(xlUp).Row
 
-    ' Loop through column B to find <YEAR> CAPEX
+    ' Loop through column B to find "<YEAR> CAPEX" headers
     For currentRow = 1 To lastRow
         Dim cellValue As String
         cellValue = Trim(wsSource.Cells(currentRow, "B").Value)
 
         If regex.Test(cellValue) Then
-            capexYear = Split(cellValue)(0) ' Extract year
-            headerRow = currentRow
+            capexYear = Split(cellValue)(0)
             currentRow = currentRow + 1
             emptyRowCount = 0
 
             Do While currentRow <= lastRow And emptyRowCount < 5
                 groupValue = Trim(wsSource.Cells(currentRow, "B").Value)
+
                 If groupValue = "" Then
                     emptyRowCount = emptyRowCount + 1
                 Else
@@ -70,7 +72,7 @@ Sub ExtractCAPEXDataForPowerBI()
                         .Cells(destRow, 1).Value = groupValue
                         .Cells(destRow, 2).Value = assetDescription
                         .Cells(destRow, 3).Value = amountValue
-                        .Cells(destRow, 4).Value = "" ' Date
+                        .Cells(destRow, 4).Value = "" ' Leave date blank
                         .Cells(destRow, 5).Value = capexYear
                     End With
 
@@ -80,9 +82,10 @@ Sub ExtractCAPEXDataForPowerBI()
                 currentRow = currentRow + 1
             Loop
 
-            currentRow = currentRow - 1 ' To balance outer loop increment
+            currentRow = currentRow - 1 ' To offset For loop increment
         End If
     Next currentRow
 
     MsgBox "Data extraction complete. Output written to '" & sheetName & "'.", vbInformation
 End Sub
+
