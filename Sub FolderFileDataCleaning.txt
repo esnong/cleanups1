@@ -4,9 +4,9 @@ Sub PrepareDataForPowerBI()
     Dim lastRow As Long
     Dim i As Long, col As Long
     Dim targetRow As Long
-    Dim yearOffset As Integer
     Dim yearStart As Integer
-
+    Dim assetType As String
+    
     ' Set source worksheet (assuming it's the active one)
     Set wsSource = ActiveSheet
 
@@ -25,19 +25,21 @@ Sub PrepareDataForPowerBI()
     wsTarget.Range("A1:D1").Value = Array("Asset Type", "Asset Description", "Amount", "Year")
     targetRow = 2
 
-    ' Find last row in source sheet
+    ' Determine last row in source data
     lastRow = wsSource.Cells(wsSource.Rows.Count, "F").End(xlUp).Row
 
-    yearStart = 2022 ' Starting year for column M
+    yearStart = 2022 ' Column M = 2022
 
     ' Loop through rows
     For i = 2 To lastRow
-        ' Only proceed if Asset Type and Description exist
-        If wsSource.Cells(i, "F").Value <> "" And wsSource.Cells(i, "G").Value <> "" Then
+        assetType = Trim(wsSource.Cells(i, "F").Value)
+        
+        ' Only process "GFA: Buildings" or "GFA: MT&E"
+        If assetType = "GFA: Buildings" Or assetType = "GFA: MT&E" Then
             ' Loop through columns M (13) to R (18)
             For col = 13 To 18
                 If wsSource.Cells(i, col).Value <> "" Then
-                    wsTarget.Cells(targetRow, 1).Value = wsSource.Cells(i, "F").Value ' Asset Type
+                    wsTarget.Cells(targetRow, 1).Value = assetType ' Asset Type
                     wsTarget.Cells(targetRow, 2).Value = wsSource.Cells(i, "G").Value ' Asset Description
                     wsTarget.Cells(targetRow, 3).Value = wsSource.Cells(i, col).Value ' Amount
                     wsTarget.Cells(targetRow, 4).Value = yearStart + (col - 13) ' Year
