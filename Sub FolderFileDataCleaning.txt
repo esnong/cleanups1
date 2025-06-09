@@ -8,21 +8,28 @@ Sub CreatePowerBISheet()
     Dim assetType As String, assetDesc As String
     Dim amount As Double
     Dim colMap As Variant
+
+    ' Set source worksheet
+    On Error Resume Next
+    Set wsSource = ThisWorkbook.Sheets("STA Capex")
+    On Error GoTo 0
     
-    ' Define source worksheet
-    Set wsSource = ThisWorkbook.Sheets(1) ' Change as needed (e.g., "Data")
-    
+    If wsSource Is Nothing Then
+        MsgBox "Worksheet 'STA Capex' not found.", vbCritical
+        Exit Sub
+    End If
+
     ' Delete "For PowerBI" if it exists
     Application.DisplayAlerts = False
     On Error Resume Next
     ThisWorkbook.Sheets("For PowerBI").Delete
     On Error GoTo 0
     Application.DisplayAlerts = True
-    
+
     ' Create new "For PowerBI" worksheet
     Set wsDest = ThisWorkbook.Sheets.Add
     wsDest.Name = "For PowerBI"
-    
+
     ' Add headers
     With wsDest
         .Cells(1, 1).Value = "Asset Type"
@@ -30,21 +37,21 @@ Sub CreatePowerBISheet()
         .Cells(1, 3).Value = "Amount"
         .Cells(1, 4).Value = "Year"
     End With
-    
-    ' Determine last data row in source
+
+    ' Determine last row in "STA Capex"
     lastRow = wsSource.Cells(wsSource.Rows.Count, "F").End(xlUp).Row
     destRow = 2 ' Start writing from second row
-    
-    ' Map column letters M to R to years 2022 to 2027
-    colMap = Array(13, 14, 15, 16, 17, 18) ' M = 13 to R = 18
-    
-    ' Loop through each row in source sheet
+
+    ' Columns M to R are columns 13 to 18 (years 2022–2027)
+    colMap = Array(13, 14, 15, 16, 17, 18)
+
+    ' Loop through rows in source sheet
     For i = 2 To lastRow
         assetType = wsSource.Cells(i, 6).Value ' Column F
         assetDesc = wsSource.Cells(i, 7).Value ' Column G
-        
+
         If assetType = "GFA: Buildings" Or assetType = "GFA: MT&E" Then
-            For j = 0 To 5 ' Columns M to R (2022 to 2027)
+            For j = 0 To 5 ' Loop over M to R
                 amount = wsSource.Cells(i, colMap(j)).Value
                 If amount <> 0 And amount <> "" Then
                     wsDest.Cells(destRow, 1).Value = IIf(assetType = "GFA: Buildings", "Buildings", "Equipment")
