@@ -6,9 +6,17 @@ Sub PrepareDataForPowerBI()
     Dim targetRow As Long
     Dim yearStart As Integer
     Dim assetType As String
-    
-    ' Set source worksheet (assuming it's the active one)
-    Set wsSource = ActiveSheet
+    Dim tblRange As Range
+    Dim tbl As ListObject
+
+    ' Set source worksheet ("STA Capex")
+    On Error Resume Next
+    Set wsSource = Worksheets("STA Capex")
+    On Error GoTo 0
+    If wsSource Is Nothing Then
+        MsgBox "Worksheet 'STA Capex' not found.", vbCritical
+        Exit Sub
+    End If
 
     ' Delete "For PowerBI" sheet if it exists
     Application.DisplayAlerts = False
@@ -24,13 +32,12 @@ Sub PrepareDataForPowerBI()
     ' Write headers
     wsTarget.Range("A1:D1").Value = Array("Asset Type", "Asset Description", "Amount", "Year")
     targetRow = 2
+    yearStart = 2022 ' Column M = 2022
 
     ' Determine last row in source data
     lastRow = wsSource.Cells(wsSource.Rows.Count, "F").End(xlUp).Row
 
-    yearStart = 2022 ' Column M = 2022
-
-    ' Loop through rows
+    ' Loop through rows in source data
     For i = 2 To lastRow
         assetType = Trim(wsSource.Cells(i, "F").Value)
         
@@ -49,5 +56,10 @@ Sub PrepareDataForPowerBI()
         End If
     Next i
 
-    MsgBox "Data prepared successfully on 'For PowerBI' sheet.", vbInformation
+    ' Create Excel Table from the populated data
+    Set tblRange = wsTarget.Range("A1").CurrentRegion
+    Set tbl = wsTarget.ListObjects.Add(xlSrcRange, tblRange, , xlYes)
+    tbl.Name = "PowerBITable"
+
+    MsgBox "Data prepared successfully on 'For PowerBI' sheet as an Excel Table.", vbInformation
 End Sub
