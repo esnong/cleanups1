@@ -1,93 +1,59 @@
-Sub ExtractAllCAPEXBlocksForPowerBI()
+Sub CreatePowerBISheet()
     Dim wsSource As Worksheet
     Dim wsDest As Worksheet
-    Dim sheetName As String
     Dim lastRow As Long
-    Dim currentRow As Long
     Dim destRow As Long
-    Dim capexYear As String
-    Dim groupValue As String
-    Dim assetDescription As String
-    Dim amountValue As Variant
-    Dim regex As Object
-    Dim emptyRowCount As Integer
-
-    ' Set source sheet as the active sheet at the beginning
-    Set wsSource = ActiveSheet
-    sheetName = "For Power BI (AE)"
-
-    ' Create regular expression to detect "<YEAR> CAPEX"
-    Set regex = CreateObject("VBScript.RegExp")
-    regex.IgnoreCase = True
-    regex.Global = False
-
-    ' Delete existing destination sheet if it's not the source sheet
-    On Error Resume Next
+    Dim i As Long, j As Long
+    Dim yearOffset As Integer
+    Dim assetType As String, assetDesc As String
+    Dim amount As Double
+    Dim colMap As Variant
+    
+    ' Define source worksheet
+    Set wsSource = ThisWorkbook.Sheets(1) ' Change as needed (e.g., "Data")
+    
+    ' Delete "For PowerBI" if it exists
     Application.DisplayAlerts = False
-    If Not wsSource.Name = sheetName Then Worksheets(sheetName).Delete
-    Application.DisplayAlerts = True
+    On Error Resume Next
+    ThisWorkbook.Sheets("For PowerBI").Delete
     On Error GoTo 0
-
-    ' Create new destination sheet
-    Set wsDest = Worksheets.Add(After:=Worksheets(Worksheets.Count))
-    wsDest.Name = sheetName
-
-    ' Set headers
+    Application.DisplayAlerts = True
+    
+    ' Create new "For PowerBI" worksheet
+    Set wsDest = ThisWorkbook.Sheets.Add
+    wsDest.Name = "For PowerBI"
+    
+    ' Add headers
     With wsDest
-        .Cells(1, 1).Value = "Group"
+        .Cells(1, 1).Value = "Asset Type"
         .Cells(1, 2).Value = "Asset Description"
         .Cells(1, 3).Value = "Amount"
-        .Cells(1, 4).Value = "Date"
-        .Cells(1, 5).Value = "Year"
+        .Cells(1, 4).Value = "Year"
     End With
-    destRow = 2
-
-    ' Get last row in column B
-    lastRow = wsSource.Cells(wsSource.Rows.Count, "B").End(xlUp).Row
-    currentRow = 1
-
-    ' Loop through every row in Column B
-    Do While currentRow <= lastRow
-        Dim cellValue As String
-        cellValue = Trim(wsSource.Cells(currentRow, "B").Value)
-
-        ' Check if the cell matches "<YEAR> CAPEX"
-        If regex.Test(cellValue) Then
-            ' Extract the year from the header
-            capexYear = Split(cellValue)(0)
-            currentRow = currentRow + 1
-            emptyRowCount = 0
-
-            ' Process rows under this CAPEX header
-            Do While currentRow <= lastRow And emptyRowCount < 5
-                groupValue = Trim(wsSource.Cells(currentRow, "B").Value)
-
-                If groupValue = "" Then
-                    emptyRowCount = emptyRowCount + 1
-                Else
-                    emptyRowCount = 0
-
-                    assetDescription = wsSource.Cells(currentRow, "C").Value
-                    amountValue = wsSource.Cells(currentRow, "S").Value
-
-                    ' Write data to destination sheet
-                    With wsDest
-                        .Cells(destRow, 1).Value = groupValue
-                        .Cells(destRow, 2).Value = assetDescription
-                        .Cells(destRow, 3).Value = amountValue
-                        .Cells(destRow, 4).Value = "" ' Date is left blank
-                        .Cells(destRow, 5).Value = capexYear
-                    End With
-
+    
+    ' Determine last data row in source
+    lastRow = wsSource.Cells(wsSource.Rows.Count, "F").End(xlUp).Row
+    destRow = 2 ' Start writing from second row
+    
+    ' Map column letters M to R to years 2022 to 2027
+    colMap = Array(13, 14, 15, 16, 17, 18) ' M = 13 to R = 18
+    
+    ' Loop through each row in source sheet
+    For i = 2 To lastRow
+        assetType = wsSource.Cells(i, 6).Value ' Column F
+        assetDesc = wsSource.Cells(i, 7).Value ' Column G
+        
+        If assetType = "GFA: Buildings" Or assetType = "GFA: MT&E" Then
+            For j = 0 To 5 ' Columns M to R (2022 to 2027)
+                amount = wsSource.Cells(i, colMap(j)).Value
+                If amount <> 0 And amount <> "" Then
+                    wsDest.Cells(destRow, 1).Value = IIf(assetType = "GFA: Buildings", "Buildings", "Equipment")
+                    wsDest.Cells(destRow, 2).Value = assetDesc
+                    wsDest.Cells(destRow, 3).Value = amount
+                    wsDest.Cells(destRow, 4).Value = 2022 + j
                     destRow = destRow + 1
                 End If
-
-                currentRow = currentRow + 1
-            Loop
-        Else
-            currentRow = currentRow + 1
+            Next j
         End If
-    Loop
-
-    MsgBox "Data extraction complete. Output written to '" & sheetName & "'.", vbInformation
+    Next i
 End Sub
