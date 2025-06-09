@@ -1,66 +1,51 @@
-Sub CreatePowerBISheet()
+Sub PrepareDataForPowerBI()
     Dim wsSource As Worksheet
-    Dim wsDest As Worksheet
+    Dim wsTarget As Worksheet
     Dim lastRow As Long
-    Dim destRow As Long
-    Dim i As Long, j As Long
+    Dim i As Long, col As Long
+    Dim targetRow As Long
     Dim yearOffset As Integer
-    Dim assetType As String, assetDesc As String
-    Dim amount As Double
-    Dim colMap As Variant
+    Dim yearStart As Integer
 
-    ' Set source worksheet
-    On Error Resume Next
-    Set wsSource = ThisWorkbook.Sheets("STA Capex")
-    On Error GoTo 0
-    
-    If wsSource Is Nothing Then
-        MsgBox "Worksheet 'STA Capex' not found.", vbCritical
-        Exit Sub
-    End If
+    ' Set source worksheet (assuming it's the active one)
+    Set wsSource = ActiveSheet
 
-    ' Delete "For PowerBI" if it exists
+    ' Delete "For PowerBI" sheet if it exists
     Application.DisplayAlerts = False
     On Error Resume Next
-    ThisWorkbook.Sheets("For PowerBI").Delete
+    Worksheets("For PowerBI").Delete
     On Error GoTo 0
     Application.DisplayAlerts = True
 
-    ' Create new "For PowerBI" worksheet
-    Set wsDest = ThisWorkbook.Sheets.Add
-    wsDest.Name = "For PowerBI"
+    ' Create new "For PowerBI" sheet
+    Set wsTarget = Worksheets.Add
+    wsTarget.Name = "For PowerBI"
 
-    ' Add headers
-    With wsDest
-        .Cells(1, 1).Value = "Asset Type"
-        .Cells(1, 2).Value = "Asset Description"
-        .Cells(1, 3).Value = "Amount"
-        .Cells(1, 4).Value = "Year"
-    End With
+    ' Write headers
+    wsTarget.Range("A1:D1").Value = Array("Asset Type", "Asset Description", "Amount", "Year")
+    targetRow = 2
 
-    ' Determine last row in "STA Capex"
+    ' Find last row in source sheet
     lastRow = wsSource.Cells(wsSource.Rows.Count, "F").End(xlUp).Row
-    destRow = 2 ' Start writing from second row
 
-    ' Columns M to R are columns 13 to 18 (years 2022–2027)
-    colMap = Array(13, 14, 15, 16, 17, 18)
+    yearStart = 2022 ' Starting year for column M
 
-    ' Loop through rows in source sheet
+    ' Loop through rows
     For i = 2 To lastRow
-        assetType = wsSource.Cells(i, 6).Value ' Column F
-        assetDesc = wsSource.Cells(i, 7).Value ' Column G
-
-        If assetType = "GFA: Buildings" Or assetType = "GFA: MT&E" Then
-            For j = 0 To 5 ' Loop over M to R
-                amount = wsSource.Cells(i, colMap(j)).Value
-                If amount <> 0 And amount <> "" Then
-                    wsDest.Cells(destRow, 1).Value = IIf(assetType = "GFA: Buildings", "Buildings", "Equipment")
-                    wsDest.Cells(destRow, 2).Value = assetDesc
-                    wsDest.Cells(destRow, 3).Value = amount
-                    wsDest.Cells(destRow, 4).Value = 2022 + j
-                    destRow = destRow + 1
+        ' Only proceed if Asset Type and Description exist
+        If wsSource.Cells(i, "F").Value <> "" And wsSource.Cells(i, "G").Value <> "" Then
+            ' Loop through columns M (13) to R (18)
+            For col = 13 To 18
+                If wsSource.Cells(i, col).Value <> "" Then
+                    wsTarget.Cells(targetRow, 1).Value = wsSource.Cells(i, "F").Value ' Asset Type
+                    wsTarget.Cells(targetRow, 2).Value = wsSource.Cells(i, "G").Value ' Asset Description
+                    wsTarget.Cells(targetRow, 3).Value = wsSource.Cells(i, col).Value ' Amount
+                    wsTarget.Cells(targetRow, 4).Value = yearStart + (col - 13) ' Year
+                    targetRow = targetRow + 1
                 End If
-            Next j
+            Next col
         End If
     Next i
+
+    MsgBox "Data prepared successfully on 'For PowerBI' sheet.", vbInformation
 End Sub
