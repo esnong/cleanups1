@@ -1,88 +1,86 @@
-Sub TransformEDBClaimSummary()
-
-    Dim wsSource As Worksheet
-    Dim wsDest As Worksheet
+Sub TransformEDBData()
+    Dim srcSheet As Worksheet
+    Dim destSheet As Worksheet
+    Dim wsName As String
     Dim lastRow As Long, destRow As Long
-    Dim sourceRow As Long, col As Integer
-    Dim entityType As String, mappedEntity As String, groupName As String
-    Dim year As Variant, value As Variant, localForeign As String, rawYear As Variant
-    Dim entityMap As Object
-    Dim yearColStart As Integer, yearColEnd As Integer
-    Dim tblRange As Range
+    Dim entityType As String, personType As String
+    Dim mappedEntity As String, group As String
+    Dim yearCol As Long, yearVal As Long
+    Dim val As Variant
+    Dim i As Long
 
-    ' Define entity mapping
-    Set entityMap = CreateObject("Scripting.Dictionary")
-    entityMap.Add "- PWCS", Array("PWCS CAS", "PWCS")
-    entityMap.Add "- PWCS (SHQ)", Array("PWCS SHQ", "PWCS")
-    entityMap.Add "- TOS", Array("TOS", "TOS")
-    entityMap.Add "- ESA", Array("ESA", "ESA")
-    entityMap.Add "PWS - STA AMO", Array("STA AMO", "STA")
-    entityMap.Add "PWS - STA ASE", Array("STA ASE", "STA")
+    wsName = "Transformed Output"
 
-    ' Set source worksheet
-    Set wsSource = ThisWorkbook.Sheets("EDB Claim summary")
+    ' Set source sheet
+    Set srcSheet = ThisWorkbook.Sheets("EDB Claim summary")
 
-    ' Delete existing destination sheet if it exists
-    On Error Resume Next
+    ' Delete existing output sheet if it exists
     Application.DisplayAlerts = False
-    Worksheets("Transformed Data").Delete
-    Application.DisplayAlerts = True
+    On Error Resume Next
+    Worksheets(wsName).Delete
     On Error GoTo 0
+    Application.DisplayAlerts = True
 
-    ' Create new destination worksheet
-    Set wsDest = ThisWorkbook.Sheets.Add
-    wsDest.Name = "Transformed Data"
+    ' Add new output sheet
+    Set destSheet = ThisWorkbook.Sheets.Add
+    destSheet.Name = wsName
 
-    ' Set headers
-    wsDest.Range("A1:E1").Value = Array("Entity", "Group", "Local/Foreigner", "Value", "Year")
+    ' Add headers to new sheet
+    With destSheet
+        .Cells(1, 1).Value = "Entity"
+        .Cells(1, 2).Value = "Group"
+        .Cells(1, 3).Value = "Local/Foreigner"
+        .Cells(1, 4).Value = "Value"
+        .Cells(1, 5).Value = "Year"
+    End With
+
     destRow = 2
+    lastRow = srcSheet.Cells(srcSheet.Rows.Count, "A").End(xlUp).Row
 
-    ' Define year columns (E to I = columns 5 to 9)
-    yearColStart = 5
-    yearColEnd = 9
+    ' Loop through each row in source sheet
+    For i = 2 To lastRow
+        entityType = Trim(srcSheet.Cells(i, 1).Value)
+        personType = Trim(srcSheet.Cells(i, 2).Value)
 
-    ' Determine last row in source data
-    lastRow = wsSource.Cells(wsSource.Rows.Count, "A").End(xlUp).Row
+        ' Filter by person type
+        If personType <> "Local" And personType <> "Foreigner" Then GoTo NextRow
 
-    ' Loop through source rows
-    For sourceRow = 2 To lastRow
-        entityType = Trim(wsSource.Cells(sourceRow, 1).Value)
-        localForeign = Trim(wsSource.Cells(sourceRow, 2).Value)
+        ' Match and map entity types
+        Select Case entityType
+            Case "- PWCS"
+                mappedEntity = "PWCS CAS": group = "PWCS"
+            Case "- PWCS (SHQ)"
+                mappedEntity = "PWCS SHQ": group = "PWCS"
+            Case "- TOS"
+                mappedEntity = "TOS": group = "TOS"
+            Case "- ESA"
+                mappedEntity = "ESA": group = "ESA"
+            Case "PWS - STA AMO"
+                mappedEntity = "STA AMO": group = "STA"
+            Case "PWS - STA ASE"
+                mappedEntity = "STA ASE": group = "STA"
+            Case Else
+                GoTo NextRow
+        End Select
 
-        ' Check if entity is mapped and Local/Foreigner is valid
-        If entityMap.exists(entityType) And (localForeign = "Local" Or localForeign = "Foreigner") Then
-            mappedEntity = entityMap(entityType)(0)
-            groupName = entityMap(entityType)(1)
+        ' Loop through years 2022 to 2026 (columns E to I, i.e., 5 to 9)
+        For yearCol = 5 To 9
+            yearVal = 2022 + (yearCol - 5)
+            val = srcSheet.Cells(i, yearCol).Value
 
-            ' Loop through year columns (E to I)
-            For col = yearColStart To yearColEnd
-                value = wsSource.Cells(sourceRow, col).Value
-                rawYear = wsSource.Cells(1, col).Value
+            With destSheet
+                .Cells(destRow, 1).Value = mappedEntity
+                .Cells(destRow, 2).Value = group
+                .Cells(destRow, 3).Value = personType
+                .Cells(destRow, 4).Value = val
+                .Cells(destRow, 5).Value = yearVal
+            End With
 
-                ' Get year as number even if it's stored as a date
-                If IsDate(rawYear) Then
-                    year = Year(rawYear)
-                Else
-                    year = rawYear
-                End If
+            destRow = destRow + 1
+        Next yearCol
 
-                ' Only write non-empty values
-                If Not IsEmpty(value) Then
-                    wsDest.Cells(destRow, 1).Value = mappedEntity
-                    wsDest.Cells(destRow, 2).Value = groupName
-                    wsDest.Cells(destRow, 3).Value = localForeign
-                    wsDest.Cells(destRow, 4).Value = value
-                    wsDest.Cells(destRow, 5).Value = year
-                    destRow = destRow + 1
-                End If
-            Next col
-        End If
-    Next sourceRow
+NextRow:
+    Next i
 
-    ' Format output as an Excel table
-    Set tblRange = wsDest.Range("A1").CurrentRegion
-    wsDest.ListObjects.Add(xlSrcRange, tblRange, , xlYes).Name = "TransformedTable"
-
-    MsgBox "Transformation complete! Check the 'Transformed Data' sheet."
-
+    MsgBox "Transformation complete. Output is in '" & wsName & "'.", vbInformation
 End Sub
