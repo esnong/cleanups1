@@ -5,12 +5,12 @@ Sub TransformEDBClaimSummary()
     Dim lastRow As Long, destRow As Long
     Dim sourceRow As Long, col As Integer
     Dim entityType As String, mappedEntity As String, groupName As String
-    Dim year As Variant, value As Variant, localForeign As String
+    Dim year As Variant, value As Variant, localForeign As String, rawYear As Variant
     Dim entityMap As Object
     Dim yearColStart As Integer, yearColEnd As Integer
     Dim tblRange As Range
 
-    ' Define mapping
+    ' Define entity mapping
     Set entityMap = CreateObject("Scripting.Dictionary")
     entityMap.Add "- PWCS", Array("PWCS CAS", "PWCS")
     entityMap.Add "- PWCS (SHQ)", Array("PWCS SHQ", "PWCS")
@@ -33,7 +33,7 @@ Sub TransformEDBClaimSummary()
     Set wsDest = ThisWorkbook.Sheets.Add
     wsDest.Name = "Transformed Data"
 
-    ' Headers for destination sheet
+    ' Set headers
     wsDest.Range("A1:E1").Value = Array("Entity", "Group", "Local/Foreigner", "Value", "Year")
     destRow = 2
 
@@ -41,22 +41,32 @@ Sub TransformEDBClaimSummary()
     yearColStart = 5
     yearColEnd = 9
 
+    ' Determine last row in source data
     lastRow = wsSource.Cells(wsSource.Rows.Count, "A").End(xlUp).Row
 
-    ' Loop through source data
+    ' Loop through source rows
     For sourceRow = 2 To lastRow
         entityType = Trim(wsSource.Cells(sourceRow, 1).Value)
+        localForeign = Trim(wsSource.Cells(sourceRow, 2).Value)
 
-        If entityMap.exists(entityType) Then
+        ' Check if entity is mapped and Local/Foreigner is valid
+        If entityMap.exists(entityType) And (localForeign = "Local" Or localForeign = "Foreigner") Then
             mappedEntity = entityMap(entityType)(0)
             groupName = entityMap(entityType)(1)
-            localForeign = wsSource.Cells(sourceRow, 2).Value
 
+            ' Loop through year columns (E to I)
             For col = yearColStart To yearColEnd
                 value = wsSource.Cells(sourceRow, col).Value
-                year = wsSource.Cells(1, col).Value
+                rawYear = wsSource.Cells(1, col).Value
 
-                ' Only write if value is not empty
+                ' Get year as number even if it's stored as a date
+                If IsDate(rawYear) Then
+                    year = Year(rawYear)
+                Else
+                    year = rawYear
+                End If
+
+                ' Only write non-empty values
                 If Not IsEmpty(value) Then
                     wsDest.Cells(destRow, 1).Value = mappedEntity
                     wsDest.Cells(destRow, 2).Value = groupName
@@ -69,7 +79,7 @@ Sub TransformEDBClaimSummary()
         End If
     Next sourceRow
 
-    ' Convert output to a table
+    ' Format output as an Excel table
     Set tblRange = wsDest.Range("A1").CurrentRegion
     wsDest.ListObjects.Add(xlSrcRange, tblRange, , xlYes).Name = "TransformedTable"
 
