@@ -1,31 +1,38 @@
 Sub TransformEDBData()
-    Dim srcSheet As Worksheet
-    Dim destSheet As Worksheet
+    Dim srcSheet As Worksheet, destSheet As Worksheet
     Dim wsName As String
     Dim lastRow As Long, destRow As Long
     Dim rawEntity As String, personType As String
     Dim mappedEntity As String, group As String
-    Dim yearCol As Long, yearVal As Long
+    Dim yearCol As Long, yearVal As Long, i As Long
     Dim val As Variant
-    Dim i As Long
+    Dim map As Object
 
+    ' Define mapping dictionary with updated entity names
+    Set map = CreateObject("Scripting.Dictionary")
+    map.Add "PWCS", Array("PWCS CAS", "PWCS")
+    map.Add "PWCS (SHQ)", Array("PWCS SHQ", "PWCS")
+    map.Add "TOS", Array("TOS", "TOS")
+    map.Add "ESA", Array("ESA", "ESA")
+    map.Add "PWS - STA AMO", Array("STA AMO", "STA")
+    map.Add "PWS - STA ASE", Array("STA ASE", "STA")
+
+    ' Sheet setup
+    Set srcSheet = ThisWorkbook.Sheets("EDB Claim summary")
     wsName = "Transformed Output"
 
-    ' Set source sheet
-    Set srcSheet = ThisWorkbook.Sheets("EDB Claim summary")
-
-    ' Delete existing output sheet if it exists
+    ' Remove old output sheet if exists
     Application.DisplayAlerts = False
     On Error Resume Next
-    Worksheets(wsName).Delete
+    ThisWorkbook.Sheets(wsName).Delete
     On Error GoTo 0
     Application.DisplayAlerts = True
 
-    ' Add new output sheet
+    ' Create new output sheet
     Set destSheet = ThisWorkbook.Sheets.Add
     destSheet.Name = wsName
 
-    ' Add headers to new sheet
+    ' Add headers
     With destSheet
         .Cells(1, 1).Value = "Entity"
         .Cells(1, 2).Value = "Group"
@@ -37,47 +44,35 @@ Sub TransformEDBData()
     destRow = 2
     lastRow = srcSheet.Cells(srcSheet.Rows.Count, "A").End(xlUp).Row
 
-    ' Loop through each row in source sheet
+    ' Main loop
     For i = 2 To lastRow
         rawEntity = Trim(CStr(srcSheet.Cells(i, 1).Value))
         personType = Trim(CStr(srcSheet.Cells(i, 2).Value))
 
-        ' Filter by person type
+        ' Filter: Only process if person type is Local or Foreigner
         If personType <> "Local" And personType <> "Foreigner" Then GoTo NextRow
 
-        ' Normalize and map entity types
-        Select Case True
-            Case rawEntity Like "*- PWCS"
-                mappedEntity = "PWCS CAS": group = "PWCS"
-            Case rawEntity Like "*- PWCS (SHQ)"
-                mappedEntity = "PWCS SHQ": group = "PWCS"
-            Case rawEntity Like "*- TOS"
-                mappedEntity = "TOS": group = "TOS"
-            Case rawEntity Like "*- ESA"
-                mappedEntity = "ESA": group = "ESA"
-            Case rawEntity Like "PWS - STA AMO"
-                mappedEntity = "STA AMO": group = "STA"
-            Case rawEntity Like "PWS - STA ASE"
-                mappedEntity = "STA ASE": group = "STA"
-            Case Else
-                GoTo NextRow
-        End Select
+        ' Check entity in mapping
+        If map.exists(rawEntity) Then
+            mappedEntity = map(rawEntity)(0)
+            group = map(rawEntity)(1)
 
-        ' Loop through years 2022 to 2026 (columns E to I, i.e., 5 to 9)
-        For yearCol = 5 To 9
-            yearVal = 2022 + (yearCol - 5)
-            val = srcSheet.Cells(i, yearCol).Value
+            ' Loop through years 2022-2026 (columns E to I = 5 to 9)
+            For yearCol = 5 To 9
+                yearVal = 2022 + (yearCol - 5)
+                val = srcSheet.Cells(i, yearCol).Value
 
-            With destSheet
-                .Cells(destRow, 1).Value = mappedEntity
-                .Cells(destRow, 2).Value = group
-                .Cells(destRow, 3).Value = personType
-                .Cells(destRow, 4).Value = val
-                .Cells(destRow, 5).Value = yearVal
-            End With
+                With destSheet
+                    .Cells(destRow, 1).Value = mappedEntity
+                    .Cells(destRow, 2).Value = group
+                    .Cells(destRow, 3).Value = personType
+                    .Cells(destRow, 4).Value = val
+                    .Cells(destRow, 5).Value = yearVal
+                End With
 
-            destRow = destRow + 1
-        Next yearCol
+                destRow = destRow + 1
+            Next yearCol
+        End If
 
 NextRow:
     Next i
