@@ -1,81 +1,84 @@
-Sub TransformEDBData()
-    Dim srcSheet As Worksheet, destSheet As Worksheet
-    Dim wsName As String
-    Dim lastRow As Long, destRow As Long
-    Dim rawEntity As String, personType As String
-    Dim mappedEntity As String, group As String
-    Dim yearCol As Long, yearVal As Long, i As Long
-    Dim val As Variant
-    Dim map As Object
+Sub GenerateOtherEntitiesCapex()
+    Dim wsSource As Worksheet, wsTarget As Worksheet
+    Dim lastRow As Long, rowIdx As Long, colIdx As Long
+    Dim currentYear As String, currentGroup As String
+    Dim headerRow As Range
+    Dim monthName As String, monthYear As String
+    Dim value As Variant
+    Dim targetRow As Long
+    Dim monthHeaders As Variant
+    Dim monthColStart As Long, monthColEnd As Long
+    Dim capexYears As Variant
 
-    ' Define mapping dictionary with updated entity names
-    Set map = CreateObject("Scripting.Dictionary")
-    map.Add "PWCS", Array("PWCS CAS", "PWCS")
-    map.Add "PWCS (SHQ)", Array("PWCS SHQ", "PWCS")
-    map.Add "TOS", Array("TOS", "TOS")
-    map.Add "ESA", Array("ESA", "ESA")
-    map.Add "PWS - STA AMO", Array("STA AMO", "STA")
-    map.Add "PWS - STA ASE", Array("STA ASE", "STA")
+    ' Set the source worksheet
+    Set wsSource = ThisWorkbook.Sheets("AE Capex.")
 
-    ' Sheet setup
-    Set srcSheet = ThisWorkbook.Sheets("EDB Claim summary")
-    wsName = "Transformed Output"
-
-    ' Remove old output sheet if exists
+    ' Delete existing "Other Entities Capex" worksheet if it exists
     Application.DisplayAlerts = False
     On Error Resume Next
-    ThisWorkbook.Sheets(wsName).Delete
+    ThisWorkbook.Sheets("Other Entities Capex").Delete
     On Error GoTo 0
     Application.DisplayAlerts = True
 
-    ' Create new output sheet
-    Set destSheet = ThisWorkbook.Sheets.Add
-    destSheet.Name = wsName
+    ' Add a new worksheet for output
+    Set wsTarget = ThisWorkbook.Sheets.Add
+    wsTarget.Name = "Other Entities Capex"
 
-    ' Add headers
-    With destSheet
-        .Cells(1, 1).Value = "Entity"
-        .Cells(1, 2).Value = "Group"
-        .Cells(1, 3).Value = "Local/Foreigner"
-        .Cells(1, 4).Value = "Value"
-        .Cells(1, 5).Value = "Year"
+    ' Define the output headers
+    wsTarget.Range("A1:F1").Value = Array("Group", "Asset Description", "Amount", "Month", "Year", "Month and Year")
+    targetRow = 2
+
+    ' CAPEX year headers to look for
+    capexYears = Array("2022 CAPEX", "2023 CAPEX", "2024 CAPEX", "2025 CAPEX")
+
+    ' Identify last row and month column range
+    lastRow = wsSource.Cells(wsSource.Rows.Count, "B").End(xlUp).Row
+    monthColStart = 7 ' Column G
+    monthColEnd = 18  ' Column R
+
+    ' Get the month headers
+    monthHeaders = wsSource.Range(wsSource.Cells(1, monthColStart), wsSource.Cells(1, monthColEnd)).Value
+
+    ' Loop through each row
+    For rowIdx = 2 To lastRow
+        Dim entityType As String
+        entityType = Trim(wsSource.Cells(rowIdx, 2).Value)
+
+        ' Check if it's a CAPEX year header
+        If Not IsError(Application.Match(entityType, capexYears, 0)) Then
+            currentYear = Left(entityType, 4)
+        ElseIf entityType <> "" Then
+            currentGroup = entityType
+            Dim assetDesc As String
+            assetDesc = wsSource.Cells(rowIdx, 3).Value
+
+            ' Loop through each month column
+            For colIdx = monthColStart To monthColEnd
+                value = wsSource.Cells(rowIdx, colIdx).Value
+                If IsNumeric(value) And value <> 0 Then
+                    monthName = wsSource.Cells(1, colIdx).Value
+                    monthYear = monthName & "-" & currentYear
+
+                    ' Write to target sheet
+                    With wsTarget
+                        .Cells(targetRow, 1).Value = currentGroup
+                        .Cells(targetRow, 2).Value = assetDesc
+                        .Cells(targetRow, 3).Value = value
+                        .Cells(targetRow, 4).Value = monthName
+                        .Cells(targetRow, 5).Value = currentYear
+                        .Cells(targetRow, 6).Value = monthYear
+                    End With
+                    targetRow = targetRow + 1
+                End If
+            Next colIdx
+        End If
+    Next rowIdx
+
+    ' Format as table
+    With wsTarget
+        .ListObjects.Add(xlSrcRange, .Range("A1").CurrentRegion, , xlYes).Name = "OtherEntitiesCapexTable"
+        .Columns("A:F").AutoFit
     End With
 
-    destRow = 2
-    lastRow = srcSheet.Cells(srcSheet.Rows.Count, "A").End(xlUp).Row
-
-    ' Main loop
-    For i = 2 To lastRow
-        rawEntity = Trim(CStr(srcSheet.Cells(i, 1).Value))
-        personType = Trim(CStr(srcSheet.Cells(i, 2).Value))
-
-        ' Filter: Only process if person type is Local or Foreigner
-        If personType <> "Local" And personType <> "Foreigner" Then GoTo NextRow
-
-        ' Check entity in mapping
-        If map.exists(rawEntity) Then
-            mappedEntity = map(rawEntity)(0)
-            group = map(rawEntity)(1)
-
-            ' Loop through years 2022-2026 (columns E to I = 5 to 9)
-            For yearCol = 5 To 9
-                yearVal = 2022 + (yearCol - 5)
-                val = srcSheet.Cells(i, yearCol).Value
-
-                With destSheet
-                    .Cells(destRow, 1).Value = mappedEntity
-                    .Cells(destRow, 2).Value = group
-                    .Cells(destRow, 3).Value = personType
-                    .Cells(destRow, 4).Value = val
-                    .Cells(destRow, 5).Value = yearVal
-                End With
-
-                destRow = destRow + 1
-            Next yearCol
-        End If
-
-NextRow:
-    Next i
-
-    MsgBox "Transformation complete. Output is in '" & wsName & "'.", vbInformation
+    MsgBox "Capex data transformation complete.", vbInformation
 End Sub
