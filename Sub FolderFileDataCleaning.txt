@@ -1,86 +1,78 @@
-Sub TransformEntityData()
+Sub TransformEDBClaimSummary()
 
     Dim wsSource As Worksheet
-    Dim wsOutput As Worksheet
-    Dim entityRow As Long, yearCol As Long, outputRow As Long
-    Dim entity As String, mappedEntity As String, groupName As String
-    Dim value As Variant, year As Integer
+    Dim wsDest As Worksheet
+    Dim lastRow As Long, destRow As Long
+    Dim sourceRow As Long, col As Integer
+    Dim entityType As String, mappedEntity As String, groupName As String
+    Dim year As Variant, value As Variant, localForeign As String
     Dim entityMap As Object
+    Dim yearColStart As Integer, yearColEnd As Integer
     Dim tblRange As Range
-    Dim tbl As ListObject
-    
-    ' Set source sheet by name
-    On Error Resume Next
-    Set wsSource = Worksheets("STA Project Milestone")
-    On Error GoTo 0
-    
-    If wsSource Is Nothing Then
-        MsgBox "Source worksheet 'STA Project Milestone' not found.", vbExclamation
-        Exit Sub
-    End If
-    
-    ' Delete output sheet if it exists
-    On Error Resume Next
-    Application.DisplayAlerts = False
-    Worksheets("Transformed Data").Delete
-    Application.DisplayAlerts = True
-    On Error GoTo 0
-    
-    ' Add new output sheet
-    Set wsOutput = Worksheets.Add
-    wsOutput.Name = "Transformed Data"
-    
-    ' Set header
-    With wsOutput
-        .Cells(1, 1).Value = "Entity"
-        .Cells(1, 2).Value = "Group"
-        .Cells(1, 3).Value = "Value"
-        .Cells(1, 4).Value = "Year"
-    End With
-    
-    outputRow = 2
-    
-    ' Create mapping dictionary
+
+    ' Define mapping
     Set entityMap = CreateObject("Scripting.Dictionary")
     entityMap.Add "- PWCS", Array("PWCS CAS", "PWCS")
     entityMap.Add "- PWCS (SHQ)", Array("PWCS SHQ", "PWCS")
     entityMap.Add "- TOS", Array("TOS", "TOS")
     entityMap.Add "- ESA", Array("ESA", "ESA")
-    
-    ' Loop through rows in source sheet
-    For entityRow = 2 To wsSource.Cells(wsSource.Rows.Count, "A").End(xlUp).Row
-        entity = Trim(wsSource.Cells(entityRow, 1).Value)
-        
-        If entityMap.exists(entity) Then
-            mappedEntity = entityMap(entity)(0)
-            groupName = entityMap(entity)(1)
-            
-            ' Loop through years (columns B to F = 2022 to 2026)
-            For yearCol = 2 To 6
-                value = wsSource.Cells(entityRow, yearCol).Value
-                year = 2021 + yearCol ' B = 2 → 2022
-                
-                ' Write to output sheet
-                With wsOutput
-                    .Cells(outputRow, 1).Value = mappedEntity
-                    .Cells(outputRow, 2).Value = groupName
-                    .Cells(outputRow, 3).Value = value
-                    .Cells(outputRow, 4).Value = year
-                End With
-                
-                outputRow = outputRow + 1
-            Next yearCol
+    entityMap.Add "PWS - STA AMO", Array("STA AMO", "STA")
+    entityMap.Add "PWS - STA ASE", Array("STA ASE", "STA")
+
+    ' Set source worksheet
+    Set wsSource = ThisWorkbook.Sheets("EDB Claim summary")
+
+    ' Delete existing destination sheet if it exists
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    Worksheets("Transformed Data").Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+
+    ' Create new destination worksheet
+    Set wsDest = ThisWorkbook.Sheets.Add
+    wsDest.Name = "Transformed Data"
+
+    ' Headers for destination sheet
+    wsDest.Range("A1:E1").Value = Array("Entity", "Group", "Local/Foreigner", "Value", "Year")
+    destRow = 2
+
+    ' Define year columns (E to I = columns 5 to 9)
+    yearColStart = 5
+    yearColEnd = 9
+
+    lastRow = wsSource.Cells(wsSource.Rows.Count, "A").End(xlUp).Row
+
+    ' Loop through source data
+    For sourceRow = 2 To lastRow
+        entityType = Trim(wsSource.Cells(sourceRow, 1).Value)
+
+        If entityMap.exists(entityType) Then
+            mappedEntity = entityMap(entityType)(0)
+            groupName = entityMap(entityType)(1)
+            localForeign = wsSource.Cells(sourceRow, 2).Value
+
+            For col = yearColStart To yearColEnd
+                value = wsSource.Cells(sourceRow, col).Value
+                year = wsSource.Cells(1, col).Value
+
+                ' Only write if value is not empty
+                If Not IsEmpty(value) Then
+                    wsDest.Cells(destRow, 1).Value = mappedEntity
+                    wsDest.Cells(destRow, 2).Value = groupName
+                    wsDest.Cells(destRow, 3).Value = localForeign
+                    wsDest.Cells(destRow, 4).Value = value
+                    wsDest.Cells(destRow, 5).Value = year
+                    destRow = destRow + 1
+                End If
+            Next col
         End If
-    Next entityRow
+    Next sourceRow
 
-    ' Define the table range (headers + data)
-    Set tblRange = wsOutput.Range("A1").CurrentRegion
+    ' Convert output to a table
+    Set tblRange = wsDest.Range("A1").CurrentRegion
+    wsDest.ListObjects.Add(xlSrcRange, tblRange, , xlYes).Name = "TransformedTable"
 
-    ' Convert to Excel Table
-    Set tbl = wsOutput.ListObjects.Add(xlSrcRange, tblRange, , xlYes)
-    tbl.Name = "TransformedEntityTable"
-    tbl.TableStyle = "TableStyleMedium2" ' Optional: change style as needed
-
-    MsgBox "Transformation complete and table created!", vbInformation
+    MsgBox "Transformation complete! Check the 'Transformed Data' sheet."
 
 End Sub
