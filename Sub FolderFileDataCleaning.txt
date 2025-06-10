@@ -3,7 +3,7 @@ Sub TransformEDBData()
     Dim destSheet As Worksheet
     Dim wsName As String
     Dim lastRow As Long, destRow As Long
-    Dim entityType As String, personType As String
+    Dim rawEntity As String, personType As String
     Dim mappedEntity As String, group As String
     Dim yearCol As Long, yearVal As Long
     Dim val As Variant
@@ -39,25 +39,25 @@ Sub TransformEDBData()
 
     ' Loop through each row in source sheet
     For i = 2 To lastRow
-        entityType = Trim(srcSheet.Cells(i, 1).Value)
-        personType = Trim(srcSheet.Cells(i, 2).Value)
+        rawEntity = Trim(CStr(srcSheet.Cells(i, 1).Value))
+        personType = Trim(CStr(srcSheet.Cells(i, 2).Value))
 
         ' Filter by person type
         If personType <> "Local" And personType <> "Foreigner" Then GoTo NextRow
 
-        ' Match and map entity types
-        Select Case entityType
-            Case "- PWCS"
+        ' Normalize and map entity types
+        Select Case True
+            Case rawEntity Like "*- PWCS"
                 mappedEntity = "PWCS CAS": group = "PWCS"
-            Case "- PWCS (SHQ)"
+            Case rawEntity Like "*- PWCS (SHQ)"
                 mappedEntity = "PWCS SHQ": group = "PWCS"
-            Case "- TOS"
+            Case rawEntity Like "*- TOS"
                 mappedEntity = "TOS": group = "TOS"
-            Case "- ESA"
+            Case rawEntity Like "*- ESA"
                 mappedEntity = "ESA": group = "ESA"
-            Case "PWS - STA AMO"
+            Case rawEntity Like "PWS - STA AMO"
                 mappedEntity = "STA AMO": group = "STA"
-            Case "PWS - STA ASE"
+            Case rawEntity Like "PWS - STA ASE"
                 mappedEntity = "STA ASE": group = "STA"
             Case Else
                 GoTo NextRow
