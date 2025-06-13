@@ -1,13 +1,26 @@
-Headcount (Latest or Selected Year) :=
+Headcount (Latest or Selected Date) :=
 VAR SelectedYear = SELECTEDVALUE('General - Years'[Year])
-VAR LatestYear =
+VAR LatestDate =
     CALCULATE(
-        MAX(YEAR('EDB - Manpower'[Updated as of])),
+        MAX('EDB - Manpower'[Updated as of]),
         ALL('EDB - Manpower')
     )
-VAR TargetYear = IF(ISBLANK(SelectedYear), LatestYear, SelectedYear)
+VAR HeadcountForLatestDate =
+    CALCULATE(
+        DISTINCTCOUNT('EDB - Manpower'[Name of Personnel]),
+        'EDB - Manpower'[Updated as of] = LatestDate
+    )
+VAR HeadcountForSelectedYear =
+    CALCULATE(
+        DISTINCTCOUNT('EDB - Manpower'[Name of Personnel]),
+        FILTER(
+            'EDB - Manpower',
+            YEAR('EDB - Manpower'[Updated as of]) = SelectedYear
+        )
+    )
 RETURN
-CALCULATE(
-    DISTINCTCOUNT('EDB - Manpower'[Name of Personnel]),
-    YEAR('EDB - Manpower'[Updated as of]) = TargetYear
+IF(
+    ISBLANK(SelectedYear),
+    HeadcountForLatestDate,
+    HeadcountForSelectedYear
 )
